@@ -86,17 +86,16 @@ function showNotif(msg, type = 'info') {
    ===================================================== */
 async function handleLogin(e) {
     e.preventDefault();
-    const schoolInput = document.getElementById('schoolSearchInput').value.trim();
+    const selectedNpsn = document.getElementById('selectedNpsnValue') ? document.getElementById('selectedNpsnValue').value.trim() : "";
     const nisnInput = document.getElementById('studentId').value.trim();
     const btn = document.getElementById('submitBtn');
 
-    // Ekstrak NPSN dari dalam tanda kurung, contoh: "SMP Negeri 28 (10203040)" -> "10203040"
-    const npsnMatch = schoolInput.match(/\(([^)]+)\)$/);
-    if (!npsnMatch) {
-        showNotif('Pilih asal sekolah yang valid dari daftar', 'error');
+    // Validasi ketat: Jika pengguna mengetik asal tanpa memilih dari daftar dropdown
+    if (!selectedNpsn) {
+        showNotif('Pilih sekolah yang sah dari daftar pencarian sistem!', 'error');
+        document.getElementById('schoolSearchInput').focus();
         return;
     }
-    const selectedNpsn = npsnMatch[1];
 
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memverifikasi...';
@@ -781,6 +780,9 @@ function handleSchoolRegistrationPlaceholder() {
     showNotif('Fitur registrasi sekolah mandiri segera hadir.', 'info');
 }
 
+// Variabel global untuk menampung seluruh daftar sekolah dari Supabase
+window.allSchoolsData = [];
+
 async function loadSchoolOptions() {
     try {
         const { data: schools, error } = await db
@@ -789,17 +791,69 @@ async function loadSchoolOptions() {
             .eq('is_active', true);
 
         if (error) throw error;
-
-        const datalist = document.getElementById('schoolOptionsList');
-        if (datalist && schools) {
-            datalist.innerHTML = '';
-            schools.forEach(school => {
-                const option = document.createElement('option');
-                option.value = `${school.school_name} (${school.npsn})`;
-                datalist.appendChild(option);
-            });
+        if (schools) {
+            window.allSchoolsData = schools; // Simpan data ke memori lokal
         }
     } catch (err) {
         console.error("Gagal memuat daftar sekolah:", err);
     }
 }
+
+// Fungsi Filter Interaktif saat Pengguna Mengetik Nama Sekolah
+function filterSchools(keyword) {
+    const dropdown = document.getElementById('schoolDropdown');
+    const hiddenNpsn = document.getElementById('selectedNpsnValue');
+    
+    // Setiap kali mengetik ulang, reset NPSN tersimpan agar siswa wajib memilih dari dropdown
+    if (hiddenNpsn) hiddenNpsn.value = ""; 
+
+    if (!keyword || keyword.trim() === "") {
+        if (dropdown) {
+            dropdown.classList.add('hidden');
+            dropdown.innerHTML = '';
+        }
+        return;
+    }
+
+    const searchLower = keyword.toLowerCase();
+    const filtered = window.allSchoolsData.filter(s => 
+        s.school_name.toLowerCase().includes(searchLower) || s.npsn.includes(searchLower)
+    );
+
+    if (dropdown) {
+        dropdown.innerHTML = '';
+
+        if (filtered.length === 0) {
+            // Tampilkan pesan "Data tidak ditemukan" jika diketik sembarang
+            dropdown.innerHTML = `
+                <div class="p-3 text-xs text-rose-500 font-semibold text-center bg-rose-50/50">
+                    <i class="fas fa-triangle-exclamation mr-1"></i> Sekolah tidak ditemukan dalam database
+                </div>`;
+        } else {
+            // Tampilkan pilihan daftar sekolah yang cocok
+            filtered.forEach(school => {
+                const item = document.createElement('div');
+                item.className = "px-4 py-2.5 text-xs text-slate-700 font-medium hover:bg-purple-50 hover:text-purple-700 cursor-pointer border-b border-slate-50 last:border-none transition-colors";
+                item.innerHTML = `${school.school_name} <span class="text-slate-400 font-normal">(${school.npsn})</span>`;
+                
+                // Ketika salah satu diklik oleh siswa
+                item.onclick = () => {
+                    document.getElementById('schoolSearchInput').value = `${school.school_name} (${school.npsn})`;
+                    if (hiddenNpsn) hiddenNpsn.value = school.npsn; // Kunci NPSN yang sah
+                    dropdown.classList.add('hidden');
+                };
+                dropdown.appendChild(item);
+            });
+        }
+        dropdown.classList.remove('hidden');
+    }
+}
+
+// Tutup dropdown jika pengguna mengklik di luar area input
+document.addEventListener('click', (e) => {
+    const inputElem = document.getElementById('schoolSearchInput');
+    const dropdownElem = document.getElementById('schoolDropdown');
+    if (inputElem && dropdownElem && !inputElem.contains(e.target) && !dropdownElem.contains(e.target)) {
+        dropdownElem.classList.add('hidden');
+    }
+});
