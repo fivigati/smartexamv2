@@ -857,3 +857,62 @@ document.addEventListener('click', (e) => {
         dropdownElem.classList.add('hidden');
     }
 });
+// Fungsi untuk membuka/menutup modal pendaftaran tanpa pindah link URL
+function toggleRegisterModal(show) {
+    const modal = document.getElementById('registerModal');
+    if (modal) {
+        if (show) {
+            modal.classList.remove('hidden');
+        } else {
+            modal.classList.add('hidden');
+        }
+    }
+}
+
+// Fungsi eksekusi pendaftaran via modal
+async function handleModalRegistration(e) {
+    e.preventDefault();
+    const npsn = document.getElementById('mRegNpsn').value.trim();
+    const schoolName = document.getElementById('mRegSchoolName').value.trim();
+    const whatsapp = document.getElementById('mRegWhatsapp').value.trim();
+    const password = document.getElementById('mRegPassword').value.trim();
+    const btn = document.getElementById('mSubmitBtn');
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memproses...';
+
+    try {
+        const { error: schoolError } = await db.from('schools').upsert({
+            npsn: npsn,
+            school_name: schoolName,
+            whatsapp_number: whatsapp,
+            is_active: true
+        });
+
+        if (schoolError) throw schoolError;
+
+        const { error: userError } = await db.from('users').insert({
+            school_npsn: npsn,
+            school_name: schoolName,
+            operator_name: 'Admin Proktor',
+            email: `${npsn}@smartexam.id`,
+            role: 'admin',
+            password: password,
+            is_active: true
+        });
+
+        if (userError && !userError.message.includes('duplicate key')) throw userError;
+
+        showNotif('Sekolah berhasil didaftarkan!', 'success');
+        toggleRegisterModal(false);
+        
+        // Reset form
+        e.target.reset();
+    } catch (err) {
+        console.error(err);
+        showNotif('Gagal mendaftar: ' + (err.message || 'Kesalahan sistem'), 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Simpan & Daftarkan Sekolah';
+    }
+}
