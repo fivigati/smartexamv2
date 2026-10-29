@@ -874,6 +874,7 @@ async function handleModalRegistration(e) {
     e.preventDefault();
     const npsn = document.getElementById('mRegNpsn').value.trim();
     const schoolName = document.getElementById('mRegSchoolName').value.trim();
+    const email = document.getElementById('mRegEmail').value.trim();
     const whatsapp = document.getElementById('mRegWhatsapp').value.trim();
     const password = document.getElementById('mRegPassword').value.trim();
     const btn = document.getElementById('mSubmitBtn');
@@ -882,20 +883,23 @@ async function handleModalRegistration(e) {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memproses...';
 
     try {
+        // 1. Simpan ke tabel schools (pastikan kolom email ada di tabel schools Anda)
         const { error: schoolError } = await db.from('schools').upsert({
             npsn: npsn,
             school_name: schoolName,
+            email: email,
             whatsapp_number: whatsapp,
             is_active: true
         });
 
         if (schoolError) throw schoolError;
 
+        // 2. Simpan ke tabel users untuk login admin/proktor
         const { error: userError } = await db.from('users').insert({
             school_npsn: npsn,
             school_name: schoolName,
             operator_name: 'Admin Proktor',
-            email: `${npsn}@smartexam.id`,
+            email: email,
             role: 'admin',
             password: password,
             is_active: true
@@ -905,8 +909,6 @@ async function handleModalRegistration(e) {
 
         showNotif('Sekolah berhasil didaftarkan!', 'success');
         toggleRegisterModal(false);
-        
-        // Reset form
         e.target.reset();
     } catch (err) {
         console.error(err);
