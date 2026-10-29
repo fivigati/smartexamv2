@@ -879,11 +879,45 @@ async function handleModalRegistration(e) {
     const btn = document.getElementById('mSubmitBtn');
 
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memproses...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memeriksa data...';
 
     try {
-        // 1. Simpan ke Database Supabase (Tabel schools)
-        const { error: schoolError } = await db.from('schools').upsert({
+        // 1. VALIDASI PRE-CHECK: Cek apakah NPSN sudah terdaftar di tabel schools
+        const { data: existingSchool, error: checkError } = await db
+            .from('schools')
+            .select('npsn, school_name')
+            .eq('npsn', npsn)
+            .maybeSingle();
+
+        if (checkError) throw checkError;
+
+        if (existingSchool) {
+            showNotif(`Gagal: NPSN ${npsn} sudah terdaftar atas nama sekolah "${existingSchool.school_name}"!`, 'error');
+            btn.disabled = false;
+            btn.innerHTML = 'Simpan & Daftarkan Sekolah';
+            return; // Hentikan proses pendaftaran
+        }
+
+        // 2. VALIDASI PRE-CHECK: Cek apakah Email sudah digunakan oleh user/proktor lain
+        const { data: existingUser, error: checkUserError } = await db
+            .from('users')
+            .select('email')
+            .eq('email', email)
+            .maybeSingle();
+
+        if (checkUserError) throw checkUserError;
+
+        if (existingUser) {
+            showNotif(`Gagal: Email ${email} sudah digunakan oleh operator lain!`, 'error');
+            btn.disabled = false;
+            btn.innerHTML = 'Simpan & Daftarkan Sekolah';
+            return; // Hentikan proses pendaftaran
+        }
+
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memproses pendaftaran...';
+
+        // 3. Simpan ke Database Supabase (Tabel schools)
+        const { error: schoolError } = await db.from('schools'].insert({
             npsn: npsn,
             school_name: schoolName,
             email: email,
@@ -893,7 +927,7 @@ async function handleModalRegistration(e) {
 
         if (schoolError) throw schoolError;
 
-        // 2. Simpan ke Database Supabase (Tabel users untuk login admin)
+        // 4. Simpan ke Database Supabase (Tabel users untuk login admin)
         const { error: userError } = await db.from('users').insert({
             school_npsn: npsn,
             school_name: schoolName,
@@ -904,9 +938,9 @@ async function handleModalRegistration(e) {
             is_active: true
         });
 
-        if (userError && !userError.message.includes('duplicate key')) throw userError;
+        if (userError) throw userError;
 
-        // 3. Kirim data ke Google Sheets melalui URL Web App Google Apps Script
+        // 5. Kirim data ke Google Sheets melalui URL Web App Google Apps Script
         const googleScriptUrl = "https://script.google.com/macros/s/AKfycbwhnXGN_a1nQdTkHsuVuTvNAhp_1LQbj6m4uPTzNd4gusB_Z7IL_tbp5YmE2WZcm1ZeNA/exec";
         if (googleScriptUrl && googleScriptUrl.startsWith("https://")) {
             fetch(googleScriptUrl, {
@@ -917,11 +951,11 @@ async function handleModalRegistration(e) {
             }).catch(err => console.log("Gagal sync ke Google Sheets:", err));
         }
 
-        showNotif('Sekolah berhasil didaftarkan!', 'success');
+        showNotif('Sekolah & akun admin berhasil didaftarkan!', 'success');
         toggleRegisterModal(false);
         e.target.reset();
 
-        // **KUNCI UTAMA:** Langsung tarik ulang daftar sekolah terbaru ke memori tanpa perlu refresh halaman!
+        // Tarik ulang daftar sekolah terbaru ke memori
         await loadSchoolOptions();
 
     } catch (err) {
