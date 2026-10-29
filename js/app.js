@@ -90,9 +90,9 @@ async function handleLogin(e) {
     const nisnInput = document.getElementById('studentId').value.trim();
     const btn = document.getElementById('submitBtn');
 
-    // Validasi ketat: Jika pengguna mengetik asal tanpa memilih dari daftar dropdown
+    // **VALIDASI KETAT:** Cek apakah NPSN benar-benar terpilih dari dropdown yang sah
     if (!selectedNpsn) {
-        showNotif('Pilih sekolah yang sah dari daftar pencarian sistem!', 'error');
+        showNotif('Silakan pilih nama sekolah yang valid dari daftar pilihan!', 'error');
         document.getElementById('schoolSearchInput').focus();
         return;
     }
@@ -799,12 +799,12 @@ async function loadSchoolOptions() {
     }
 }
 
-// Fungsi Filter Interaktif saat Pengguna Mengetik Nama Sekolah
+// **VALIDASI KETAT:** Fungsi Filter Interaktif saat Pengguna Mengetik Nama Sekolah
 function filterSchools(keyword) {
     const dropdown = document.getElementById('schoolDropdown');
     const hiddenNpsn = document.getElementById('selectedNpsnValue');
     
-    // Setiap kali mengetik ulang, reset NPSN tersimpan agar siswa wajib memilih dari dropdown
+    // Setiap kali pengguna mengetik ulang, wajibkan pilih ulang dari dropdown (reset NPSN)
     if (hiddenNpsn) hiddenNpsn.value = ""; 
 
     if (!keyword || keyword.trim() === "") {
@@ -824,19 +824,17 @@ function filterSchools(keyword) {
         dropdown.innerHTML = '';
 
         if (filtered.length === 0) {
-            // Tampilkan pesan "Data tidak ditemukan" jika diketik sembarang
             dropdown.innerHTML = `
                 <div class="p-3 text-xs text-rose-500 font-semibold text-center bg-rose-50/50">
                     <i class="fas fa-triangle-exclamation mr-1"></i> Sekolah tidak ditemukan dalam database
                 </div>`;
         } else {
-            // Tampilkan pilihan daftar sekolah yang cocok
             filtered.forEach(school => {
                 const item = document.createElement('div');
                 item.className = "px-4 py-2.5 text-xs text-slate-700 font-medium hover:bg-purple-50 hover:text-purple-700 cursor-pointer border-b border-slate-50 last:border-none transition-colors";
                 item.innerHTML = `${school.school_name} <span class="text-slate-400 font-normal">(${school.npsn})</span>`;
                 
-                // Ketika salah satu diklik oleh siswa
+                // Ketika salah satu diklik oleh pengguna
                 item.onclick = () => {
                     document.getElementById('schoolSearchInput').value = `${school.school_name} (${school.npsn})`;
                     if (hiddenNpsn) hiddenNpsn.value = school.npsn; // Kunci NPSN yang sah
@@ -857,6 +855,7 @@ document.addEventListener('click', (e) => {
         dropdownElem.classList.add('hidden');
     }
 });
+
 // Fungsi untuk membuka/menutup modal pendaftaran tanpa pindah link URL
 function toggleRegisterModal(show) {
     const modal = document.getElementById('registerModal');
@@ -869,7 +868,7 @@ function toggleRegisterModal(show) {
     }
 }
 
-// Fungsi eksekusi pendaftaran via modal
+// **AUTO-REFRESH LIST:** Eksekusi pendaftaran via modal & perbarui memori sekolah otomatis
 async function handleModalRegistration(e) {
     e.preventDefault();
     const npsn = document.getElementById('mRegNpsn').value.trim();
@@ -908,11 +907,11 @@ async function handleModalRegistration(e) {
         if (userError && !userError.message.includes('duplicate key')) throw userError;
 
         // 3. Kirim data ke Google Sheets melalui URL Web App Google Apps Script
-        const googleScriptUrl = "https://script.google.com/macros/s/AKfycbwhnXGN_a1nQdTkHsuVuTvNAhp_1LQbj6m4uPTzNd4gusB_Z7IL_tbp5YmE2WZcm1ZeNA/exec"; // <-- Tempel URL Web App Apps Script di sini
+        const googleScriptUrl = "https://script.google.com/macros/s/AKfycbwhnXGN_a1nQdTkHsuVuTvNAhp_1LQbj6m4uPTzNd4gusB_Z7IL_tbp5YmE2WZcm1ZeNA/exec";
         if (googleScriptUrl && googleScriptUrl.startsWith("https://")) {
             fetch(googleScriptUrl, {
                 method: 'POST',
-                mode: 'no-cors', // Penting agar tidak terkena blokir CORS browser
+                mode: 'no-cors',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ npsn, schoolName, email, whatsapp, password })
             }).catch(err => console.log("Gagal sync ke Google Sheets:", err));
@@ -921,6 +920,9 @@ async function handleModalRegistration(e) {
         showNotif('Sekolah berhasil didaftarkan!', 'success');
         toggleRegisterModal(false);
         e.target.reset();
+
+        // **KUNCI UTAMA:** Langsung tarik ulang daftar sekolah terbaru ke memori tanpa perlu refresh halaman!
+        await loadSchoolOptions();
 
     } catch (err) {
         console.error(err);
