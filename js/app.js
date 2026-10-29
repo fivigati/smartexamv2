@@ -1,6 +1,7 @@
 /* =====================================================
-   GLOBAL CONFIG & STATE
+   SMART EXAM V2 - PRODUCTION BACKEND SUPABASE
    ===================================================== */
+
 window.correctToken = "";
 window.examLink = "";
 window.currentZoom = 100;
@@ -14,52 +15,22 @@ window.violationCooldown = 3000;
 window.sessionData = {
     npsn: "",
     nisn: "",
+    student_name: "",
     exam_id: "",
     exit_token: "",
     userIP: "0.0.0.0",
     wakeLock: null,
-    minExitMinutes: 10,
+    minExitMinutes: 0,
     max_violation: "UNLIMITED",
     auto_kick_enabled: false,
     allow_multi_device: true,
-    heartbeat_enabled: false
+    heartbeat_enabled: true
 };
 
 const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-// JEMBATAN PRODUCTION: DENGAN FITUR RETRY OTOMATIS (MENGATASI COLD START GAS)
-async function eksekusiGAS(payload, retries = 3, delay = 2000) {
-    for (let i = 0; i < retries; i++) {
-        try {
-            const response = await fetch(CONFIG.SCRIPT_URL, {
-                method: "POST",
-                mode: "cors",
-                headers: {
-                    "Content-Type": "text/plain;charset=utf-8"
-                },
-                body: JSON.stringify(payload)
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            return await response.json();
-        } catch (err) {
-            console.warn(`Percobaan ke-${i + 1} gagal:`, err);
-            if (i < retries - 1) {
-                // Tunggu beberapa detik sebelum mencoba lagi (mencegah server shock)
-                await new Promise(resolve => setTimeout(resolve, delay));
-            } else {
-                console.error("API Connection Error Final:", err);
-                throw new Error("Gagal berkomunikasi dengan server ujian.");
-            }
-        }
-    }
-}
-
 /* =====================================================
-   INITIALIZATION & NETWORKSTATE
+   INITIALIZATION & NETWORK STATE
    ===================================================== */
 window.onload = () => {
     const savedId = localStorage.getItem('smartExam_id');
@@ -110,119 +81,201 @@ function showNotif(msg, type = 'info') {
 }
 
 /* =====================================================
-   AUTHENTICATION LOGIC
+   AUTHENTICATION LOGIC (SUPABASE DIRECT)
    ===================================================== */
 async function handleLogin(e) {
     e.preventDefault();
-    const id = document.getElementById('studentId').value;
+    const nisnInput = document.getElementById('studentId').value.trim();
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memverifikasi...';
     
     try {
-        const r = await eksekusiGAS({ action: 'verifyStudent', nisn: id });
-        if(r.success) {
-            const remember = document.getElementById('rememberId').checked;
-            if (remember) {
-                localStorage.setItem('smartExam_id', id);
-            } else {
-                localStorage.removeItem('smartExam_id');
-            }
-            
-            sessionData.nisn = id;
-            sessionData.npsn = r.student.school_npsn;
-            sessionData.exam_id = r.exam.exam_id || r.exam.subject; 
-            sessionData.exit_token = r.exam.exit || r.exam.exit_token || "";
-            
-            sessionData.minExitMinutes = r.config.min_exit_minutes;
-            sessionData.max_violation = r.config.max_violation;
-            sessionData.auto_kick_enabled = r.config.auto_kick_enabled;
-            sessionData.allow_multi_device = r.config.allow_multi_device;
-            sessionData.heartbeat_enabled = r.config.heartbeat_enabled;
+        // 1. Ambil data siswa dari tabel Supabase
+        const { data: student, error: studentError } = await db
+            .from('students')
+            .select('*, schools(school_name)')
+            .eq('nisn', nisnInput)
+            .single();
 
-            document.getElementById('loginSection').classList.add('hidden');
-            document.getElementById('studentSection').classList.remove('hidden');
-            document.getElementById('studentName').innerText = r.student.full_name;
-            document.getElementById('studentClass').innerText = r.student.class_name;
-            document.getElementById('studentSchool').innerText = r.school.school_name;
-            document.getElementById('studentSection').dataset.duration = r.exam.duration || 90;
-            renderExam(r.exam);
-            showNotif('Identitas terverifikasi', 'success');
-        } else {
-            showNotif(r.message || 'ID tidak ditemukan', 'error');
+        if (studentError || !student) {
+            showNotif('NISN tidak ditemukan', 'error');
+            return;
         }
-    } catch (err) { 
-        showNotif('Gagal terhubung ke server ujian', 'error'); 
+
+        if ((student.account_status || '').toUpperCase() === 'INACTIVE') {
+            showNotif('Akun dinonaktifkan karena pelanggaran ujian', 'error');
+            return;
+        }
+
+        const schoolNpsn = student.school_npsn;
+
+        // 2. Ambil konfigurasi sekolah / global dari tabel _config
+        const { data: configRows } = await db
+            .from('_config')
+            .select('key, value')
+            .in('school_npsn', [schoolNpsn, 'GLOBAL']);
+
+        let configMap = {
+            min_exit_minutes: 0,
+            max_violation: 'UNLIMITED',
+            auto_kick_enabled: false,
+            allow_multi_device: true,
+            heartbeat_enabled: true
+        };
+
+        if (configRows) {
+            configRows.forEach(cfg => {
+                // Utamakan config spesifik sekolah, timpa nilai global
+                if (cfg.school_npsn === schoolNpsn || !configMap[cfg.key]) {
+                    if (cfg.value === 'TRUE' || cfg.value === 'true') configMap[cfg.key] = true;
+                    else if (cfg.value === 'FALSE' || cfg.value === 'false') configMap[cfg.key] = false;
+                    else configMap[cfg.key] = cfg.value;
+                }
+            });
+        }
+
+        // 3. Simpan state sesi
+        sessionData.nisn = student.nisn;
+        sessionData.student_name = student.full_name;
+        sessionData.npsn = schoolNpsn;
+        sessionData.minExitMinutes = parseInt(configMap.min_exit_minutes || 0);
+        sessionData.max_violation = configMap.max_violation;
+        sessionData.auto_kick_enabled = configMap.auto_kick_enabled;
+        sessionData.allow_multi_device = configMap.allow_multi_device;
+        sessionData.heartbeat_enabled = configMap.heartbeat_enabled;
+
+        const remember = document.getElementById('rememberId').checked;
+        if (remember) {
+            localStorage.setItem('smartExam_id', nisnInput);
+        } else {
+            localStorage.removeItem('smartExam_id');
+        }
+
+        // Tampilkan identitas ke UI
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('studentSection').classList.remove('hidden');
+        document.getElementById('studentName').innerText = student.full_name;
+        document.getElementById('studentClass').innerText = student.class_name;
+        document.getElementById('studentSchool').innerText = student.schools?.school_name || "Sekolah";
+
+        // 4. Ambil daftar ujian aktif yang sesuai dengan siswa
+        await fetchAndRenderActiveExams(student);
+        showNotif('Identitas terverifikasi', 'success');
+
+    } catch (err) {
+        showNotif('Gagal terhubung ke database ujian', 'error');
         console.error(err);
-    } finally { 
-        btn.disabled = false; 
-        btn.innerHTML = 'Verifikasi ID'; 
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Verifikasi ID';
     }
 }
 
-function renderExam(exam) {
+/* =====================================================
+   MULTI-EXAM DASHBOARD RENDERER
+   ===================================================== */
+async function fetchAndRenderActiveExams(student) {
     const container = document.getElementById('examContainer');
-    if(exam && exam.status === 'ACTIVE') {
-        correctToken = (exam.token || "").toString().trim();
-        examLink = exam.link;
-        container.innerHTML = `
-            <div class="bg-white rounded-[2rem] shadow-sm p-5 border border-slate-100 fade-in text-center">
-                <div class="inline-flex items-center gap-2 bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[9px] font-black mb-4 border border-emerald-100 uppercase tracking-widest">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Ujian Aktif
-                </div>
-                <h3 class="text-sm font-extrabold text-slate-800 mb-1">${exam.subject}</h3>
-                <div class="flex justify-center gap-3 text-[10px] font-bold text-slate-400 mb-5">
-                    <span><i class="far fa-clock mr-1 text-indigo-400"></i> ${exam.start_time} - ${exam.end_time}</span>
-                    <span><i class="fas fa-hourglass-half mr-1 text-indigo-400"></i> ${exam.duration || 0} Menit</span>
-                </div>
-                <div class="mb-4 text-left">
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1 tracking-widest">Token Ujian</label>
-                    <input type="text" id="tokenInput" placeholder="••••••" class="block w-full px-4 py-3 text-center text-lg tracking-[0.3em] text-indigo-600 rounded-2xl font-black uppercase bg-[#F8FAFF] border border-[#EDF2FF] focus:bg-white focus:border-indigo-500 outline-none transition-all">
-                </div>
-                <button onclick="startExam()" class="btn-gradient w-full py-3.5 text-white font-bold rounded-2xl text-sm">Mulai Ujian</button>
-            </div>`;
-    } else {
+    const nowISO = new Date().toISOString();
+
+    // Ambil ujian aktif berdasarkan sekolah dan rentang waktu start_time <= now <= end_time
+    const { data: exams, error } = await db
+        .from('exams')
+        .select('*')
+        .eq('school_npsn', student.school_npsn)
+        .eq('exam_status', 'ACTIVE')
+        .lte('start_time', nowISO)
+        .gte('end_time', nowISO);
+
+    if (error || !exams || exams.length === 0) {
         container.innerHTML = `<div class="bg-slate-50/50 border border-dashed border-slate-200 rounded-[2rem] p-8 text-center fade-in"><i class="fas fa-calendar-times text-slate-200 text-3xl mb-3"></i><div class="text-xs font-bold text-slate-400 uppercase tracking-widest">Tidak Ada Jadwal Aktif</div></div>`;
+        return;
     }
+
+    const studentClass = student.class_name.toUpperCase().trim();
+    const studentDesc = (student.description || "").toUpperCase().trim();
+    const gradeLevel = student.class_name.replace(/[^0-9]/g, '');
+
+    let validExams = [];
+
+    exams.forEach(exam => {
+        const targets = exam.target_class.toUpperCase().split(',').map(t => t.trim());
+        const isCategoryMatch = studentDesc !== "" && targets.includes(studentDesc);
+        const isClassMatch = targets.includes(studentClass);
+        const isLevelMatch = targets.includes('ALL_' + gradeLevel) || targets.includes('ALL');
+
+        if (isCategoryMatch || isClassMatch || isLevelMatch) {
+            validExams.push(exam);
+        }
+    });
+
+    if (validExams.length === 0) {
+        container.innerHTML = `<div class="bg-slate-50/50 border border-dashed border-slate-200 rounded-[2rem] p-8 text-center fade-in"><i class="fas fa-ban text-slate-200 text-3xl mb-3"></i><div class="text-xs font-bold text-slate-400 uppercase tracking-widest">Ujian Tidak Tersedia Untuk Kelas Anda</div></div>`;
+        return;
+    }
+
+    // Render kartu pilihan ujian (Multi-Exam List)
+    let htmlContent = '<div class="space-y-4 text-left">';
+    validExams.forEach((exam, index) => {
+        const startTimeStr = new Date(exam.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const endTimeStr = new Date(exam.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        htmlContent += `
+            <div class="bg-white rounded-[1.5rem] shadow-sm p-4 border border-indigo-100/60 fade-in">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-600 px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border border-emerald-100">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Tersedia
+                    </span>
+                    <span class="text-[10px] font-bold text-slate-400"><i class="far fa-clock mr-1 text-indigo-400"></i> ${startTimeStr} - ${endTimeStr}</span>
+                </div>
+                <h4 class="text-xs font-extrabold text-slate-800 mb-2">${exam.subject} (${exam.duration_minutes} Menit)</h4>
+                <div class="space-y-2">
+                    <input type="text" id="tokenInput_${exam.exam_id}" placeholder="MASUKKAN TOKEN" class="block w-full px-3 py-2.5 text-center text-sm tracking-[0.2em] text-indigo-600 rounded-xl font-black uppercase bg-[#F8FAFF] border border-[#EDF2FF] focus:bg-white focus:border-indigo-500 outline-none transition-all">
+                    <button onclick="selectAndStartExam(${exam.exam_id}, '${encodeURIComponent(exam.subject)}', '${exam.entry_token}', '${exam.exam_link}', ${exam.duration_minutes}, '${exam.exit_token || ""}')" class="btn-gradient w-full py-2.5 text-white font-bold rounded-xl text-xs">Mulai Ujian Ini</button>
+                </div>
+            </div>`;
+    });
+    htmlContent += '</div>';
+
+    container.innerHTML = htmlContent;
 }
 
 /* =====================================================
    EXAM RUNTIME CONTROLLER
    ===================================================== */
-function startExam() {
-    const input = document.getElementById('tokenInput').value.toUpperCase().trim();
-    if (input === correctToken.toUpperCase()) {
-        showNotif('Token valid! Membuka soal...', 'success');
+async function selectAndStartExam(examId, subjectEncoded, token, link, durationMinutes, exitToken) {
+    const subject = decodeURIComponent(subjectEncoded);
+    const tokenInput = document.getElementById(`tokenInput_${examId}`).value.toUpperCase().trim();
 
-        setTimeout(async () => {
-            const duration = parseInt(document.getElementById('studentSection').dataset.duration);
-            document.getElementById('examWrapper').classList.replace('hidden', 'flex');
-            document.getElementById('examIframe').src = examLink;
-
-            isExamActive = true;
-            await enterFullscreen();
-            aktifkanWakeLock();
-
-            if (sessionData.heartbeat_enabled) {
-                startHeartbeat();
-            } else {
-                kirimHeartbeat({
-                    action: 'recordHeartbeat',
-                    npsn: sessionData.npsn,
-                    nisn: sessionData.nisn,
-                    exam_id: sessionData.exam_id,
-                    session_status: 'ONLINE',
-                    fullscreen_status: 'FULL',
-                    browser_info: navigator.userAgent,
-                    device_info: `${navigator.platform} | ${navigator.vendor}`,
-                    ip_address: sessionData.userIP
-                });
-            }
-            startTimer(duration * 60);
-        }, 1000);
-    } else {
+    if (tokenInput !== token.toUpperCase().trim()) {
         showNotif('Token ujian salah!', 'error');
+        return;
     }
+
+    sessionData.exam_id = subject;
+    sessionData.exit_token = exitToken;
+    document.getElementById('studentSection').dataset.duration = durationMinutes;
+    examLink = link;
+
+    showNotif('Token valid! Membuka soal...', 'success');
+
+    setTimeout(async () => {
+        document.getElementById('examWrapper').classList.replace('hidden', 'flex');
+        document.getElementById('examIframe').src = examLink;
+
+        isExamActive = true;
+        await enterFullscreen();
+        aktifkanWakeLock();
+
+        // Daftarkan sesi ke live_sessions Supabase
+        await recordSessionToSupabase('ONLINE', 'FULL');
+
+        if (sessionData.heartbeat_enabled) {
+            startHeartbeat();
+        }
+        startTimer(durationMinutes * 60);
+    }, 1000);
 }
 
 function startTimer(seconds) {
@@ -275,7 +328,6 @@ function refreshExam() {
     setTimeout(() => { iframe.src = url; }, 50);
 }
 
-// Manajemen audio
 function stopAlarm() {
     const audio = document.getElementById('alarmAudio');
     if(audio) {
@@ -302,87 +354,63 @@ function tampilkanModalWaktuHabis() {
 }
 
 /* =====================================================
-   HEARTBEAT CORE SCRIPT
+   HEARTBEAT & SESSION MANAGEMENT (SUPABASE UPSERT)
    ===================================================== */
-async function kirimHeartbeat(payload) {
+async function recordSessionToSupabase(status = 'ONLINE', fullscreenStatus = 'FULL') {
     try {
-        const res = await eksekusiGAS(payload);
-       console.log("Respon Server:", res);
-        if (window.isForceClosing) return;
+        const deviceInfoStr = `${navigator.platform} | ${navigator.vendor}`;
 
-        // 1. JIKA SERVER MENJAWAB SESI TIDAK VALID/TERHAPUS 
-        // (Misalnya: Admin menekan Reset, Multi-Device, atau Sesi hilang dari database)
-        if (!res.success) {
-            // Hentikan semua interval dan bersihkan layar ujian
-            if (sessionData.heartbeatInterval) clearInterval(sessionData.heartbeatInterval);
-            if (timerInterval) clearInterval(timerInterval);
-            isExamActive = false;
-            document.getElementById('examIframe').src = "about:blank"; 
-            
-            let judulNotif = "Akses Ditolak";
-            let subJudulNotif = "Terjadi kendala pada sesi ujian Anda.";
-            let iconNotif = "fa-triangle-exclamation";
-            let pesanDariServer = res.message ? res.message.toLowerCase() : "";
+        // 1. Cek Validasi Multi-Device jika diaktifkan config-nya
+        if (!sessionData.allow_multi_device && status === 'ONLINE') {
+            const { data: existingSessions } = await db
+                .from('live_sessions')
+                .select('*')
+                .eq('student_nisn', sessionData.nisn)
+                .in('session_status', ['ONLINE', 'AWAY']);
 
-            // Deteksi pesan dari backend untuk menentukan notifikasi yang tepat
-            if (pesanDariServer.includes('perangkat lain') || pesanDariServer.includes('multi')) {
-                judulNotif = "Akses Ditolak";
-                subJudulNotif = "Akun terdeteksi aktif di perangkat lain.";
-                iconNotif = "fa-mobile-screen";
-            } 
-            else if (pesanDariServer.includes('tidak ditemukan') || pesanDariServer.includes('reset') || pesanDariServer.includes('tidak valid')) {
-                judulNotif = "Sesi Direset";
-                subJudulNotif = "Sesi ujian Anda telah direset oleh Admin/Proktor.";
-                iconNotif = "fa-user-shield";
+            if (existingSessions && existingSessions.length > 0) {
+                const activeSession = existingSessions[0];
+                if (activeSession.device_info !== deviceInfoStr) {
+                    handleSessionExpired("Akun sedang digunakan di perangkat lain");
+                    return;
+                }
             }
+        }
 
-            // Tampilkan modal sesuai kategori
-            showSecurityModal({
-                title: judulNotif,
-                subtitle: subJudulNotif,
-                message: res.message || "Sesi ujian ditutup oleh sistem.",
-                icon: iconNotif
-            });
-            return; // Berhenti di sini agar tidak memproses logic selanjutnya
+        // 2. Upsert Sesi ke tabel live_sessions (berdasarkan Unique Index student_nisn & device_info)
+        const { data, error } = await db
+            .from('live_sessions')
+            .upsert({
+                school_npsn: sessionData.npsn,
+                student_nisn: sessionData.nisn,
+                student_name: sessionData.student_name, // Trigger database juga akan mengamankan ini
+                exam_id: sessionData.exam_id,
+                session_status: status,
+                fullscreen_status: fullscreenStatus === 'FULL',
+                browser_info: navigator.userAgent,
+                device_info: deviceInfoStr,
+                ip_address: sessionData.userIP,
+                last_seen: new Date().toISOString()
+            }, { onConflict: 'student_nisn,device_info' })
+            .select();
+
+        if (error) throw error;
+
+        // Cek jika status di-kick atau di-banned oleh admin
+        if (data && data.length > 0) {
+            const currentSession = data[0];
+            if (currentSession.session_status === 'KICKED') {
+                handleSessionExpired("Akun Anda telah di-kick / dinonaktifkan oleh pengawas.");
+            }
         }
-       
-        if (res.kicked) {
-            if (sessionData.heartbeatInterval) clearInterval(sessionData.heartbeatInterval);
-            if (timerInterval) clearInterval(timerInterval);
-            isExamActive = false;
-            document.getElementById('examIframe').src = "about:blank";
-            
-            showSecurityModal({
-                title: "Ujian Dihentikan",
-                subtitle: "Batas pelanggaran telah tercapai.",
-                message: "Akun ujian Anda dinonaktifkan sementara oleh sistem.",
-                icon: "fa-ban"
-            });
-           return; // Berhenti di sini agar tidak memproses logic selanjutnya
-        }
-       if (res.new_link && typeof currentExamLink !== 'undefined' && res.new_link !== currentExamLink) {
-          currentExamLink = res.new_link;
-          document.getElementById('examIframe').src = currentExamLink;
-          console.log("Link ujian diperbarui oleh Admin."); 
-       }
 
     } catch (err) {
-        console.log('Heartbeat Error:', err);
+        console.error('Heartbeat Supabase Error:', err);
     }
 }
 
 function startHeartbeat() {
-    kirimHeartbeat({
-        action: 'recordHeartbeat',
-        npsn: sessionData.npsn,
-        nisn: sessionData.nisn,
-        exam_id: sessionData.exam_id,
-        session_status: 'ONLINE',
-        fullscreen_status: 'FULL',
-        browser_info: navigator.userAgent,
-        device_info: `${navigator.platform} | ${navigator.vendor}`,
-        ip_address: sessionData.userIP
-    });
+    recordSessionToSupabase('ONLINE', 'FULL');
 
     sessionData.heartbeatInterval = setInterval(() => {
         if (!isExamActive) return;
@@ -397,18 +425,22 @@ function startHeartbeat() {
         let st = "ONLINE";
         if (!isVisible || (!isIOS && !isFullscreen)) st = "AWAY";
 
-        kirimHeartbeat({
-            action: 'recordHeartbeat',
-            npsn: sessionData.npsn,
-            nisn: sessionData.nisn,
-            exam_id: sessionData.exam_id,
-            session_status: st,
-            fullscreen_status: isFullscreen ? 'FULL' : 'WINDOWED',
-            browser_info: navigator.userAgent,
-            device_info: `${navigator.platform} | ${navigator.vendor}`,
-            ip_address: sessionData.userIP
-        });
+        recordSessionToSupabase(st, isFullscreen ? 'FULL' : 'WINDOWED');
     }, 15000);
+}
+
+function handleSessionExpired(message) {
+    if (sessionData.heartbeatInterval) clearInterval(sessionData.heartbeatInterval);
+    if (timerInterval) clearInterval(timerInterval);
+    isExamActive = false;
+    document.getElementById('examIframe').src = "about:blank";
+
+    showSecurityModal({
+        title: "Akses Ditolak",
+        subtitle: "Sesi ujian dihentikan.",
+        message: message,
+        icon: "fa-ban"
+    });
 }
 
 /* =====================================================
@@ -441,7 +473,7 @@ document.addEventListener("fullscreenchange", () => {
 });
 
 /* =====================================================
-   SECURITY MONITORING LOGIC (VERSI ADIL & ANTI-FALSE ALARM iOS)
+   SECURITY & VIOLATION LOGIC (SUPABASE DIRECT)
    ===================================================== */
 let iosViolationTimeout = null;
 
@@ -464,16 +496,11 @@ document.addEventListener("fullscreenchange", () => {
 });
 
 if (isIOS) {
-
-    // iOS Safari terlalu sensitif terhadap blur
-    // jadi blur diabaikan total
-
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "hidden") {
             handleIosBlurAction();
         } else {
             stopAlarm();
-
             if (iosViolationTimeout) {
                 clearTimeout(iosViolationTimeout);
                 iosViolationTimeout = null;
@@ -481,14 +508,11 @@ if (isIOS) {
         }
     });
 
-    window.addEventListener("pagehide", () => {
-        handleIosBlurAction();
-    });
+    window.addEventListener("pagehide", () => { handleIosBlurAction(); });
 
     window.addEventListener("focus", () => {
         if (isExamActive) {
             stopAlarm();
-
             if (iosViolationTimeout) {
                 clearTimeout(iosViolationTimeout);
                 iosViolationTimeout = null;
@@ -501,7 +525,6 @@ function handleIosBlurAction() {
     if (!isExamActive || window.isForceClosing) return;
 
     document.getElementById('alarmAudio').play();
-
     document.getElementById('lockScreen').classList.remove('hidden');
     document.getElementById('lockScreen').classList.add('flex');
 
@@ -522,24 +545,58 @@ async function triggerViolation(type) {
     if(audio) audio.play();
 
     try {
-        const res = await eksekusiGAS({
-            action: 'logViolation',
-            npsn: sessionData.npsn,
-            nisn: sessionData.nisn,
+        // 1. Simpan log pelanggaran ke tabel violations Supabase
+        await db.from('violations').insert([{
+            school_npsn: sessionData.npsn,
+            student_nisn: sessionData.nisn,
+            student_name: sessionData.student_name,
             exam_id: sessionData.exam_id,
-            type: type,
-            device_info: isIOS ? `${navigator.platform} | iOS Device` : `${navigator.platform} | ${navigator.vendor}`,
-            ip_address: sessionData.userIP
-        });
-        if (res.kicked) {
-            showSecurityModal({
-                title: "Ujian Dihentikan",
-                subtitle: "Batas pelanggaran telah tercapai.",
-                message: "Akun ujian Anda dinonaktifkan sementara oleh sistem.",
-                icon: "fa-ban"
-            });
+            violation_type: type,
+            severity: 'WARNING'
+        }]);
+
+        // 2. Ambil dan update violation_count di live_sessions
+        const { data: sessionRow } = await db
+            .from('live_sessions')
+            .select('violation_count')
+            .eq('student_nisn', sessionData.nisn)
+            .eq('exam_id', sessionData.exam_id)
+            .single();
+
+        let newCount = sessionRow ? (sessionRow.violation_count + 1) : 1;
+
+        await db
+            .from('live_sessions')
+            .update({ violation_count: newCount })
+            .eq('student_nisn', sessionData.nisn)
+            .eq('exam_id', sessionData.exam_id);
+
+        // 3. Cek batas max_violation & auto-kick
+        let maxLimit = sessionData.max_violation;
+        if (maxLimit !== "UNLIMITED" && sessionData.auto_kick_enabled) {
+            if (newCount >= parseInt(maxLimit)) {
+                // Update status jadi KICKED
+                await db
+                    .from('live_sessions')
+                    .update({ session_status: 'KICKED' })
+                    .eq('student_nisn', sessionData.nisn);
+
+                // Nonaktifkan status akun siswa
+                await db
+                    .from('students')
+                    .update({ account_status: 'INACTIVE' })
+                    .eq('nisn', sessionData.nisn);
+
+                showSecurityModal({
+                    title: "Ujian Dihentikan",
+                    subtitle: "Batas pelanggaran telah tercapai.",
+                    message: "Akun ujian Anda dinonaktifkan sementara oleh sistem.",
+                    icon: "fa-ban"
+                });
+            }
         }
-    } catch (e) { console.log(e); }
+
+    } catch (e) { console.log("Gagal log pelanggaran:", e); }
 }
 
 async function kembaliKeFullscreen() {
@@ -592,11 +649,10 @@ function tutupModalExit() {
     document.getElementById('stepToken').classList.add('hidden');
     document.getElementById('stepConfirmation').classList.remove('hidden');
     
-    // --- TAMBAHAN: BERSIHKAN STATUS TOMBOL ---
     const btnExit = document.getElementById('btnFinalExit');
     if (btnExit) {
         btnExit.disabled = false;
-        btnExit.innerHTML = 'KELUAR'; // Kembalikan teks asli
+        btnExit.innerHTML = 'KELUAR';
     }
     
     const btnSubmit = document.getElementById('btnCloseExam');
@@ -604,7 +660,6 @@ function tutupModalExit() {
         btnSubmit.disabled = false;
         btnSubmit.innerHTML = 'SAYA SUDAH SUBMIT';
     }
-    // ----------------------------------------
 
     document.getElementById('exitTokenInput').value = "";
     document.getElementById('exitErrorMsg').classList.add('hidden');
@@ -638,11 +693,9 @@ async function konfirmasiKeluar(e) {
     const inputUser = document.getElementById('exitTokenInput').value.trim().toUpperCase();
     const tokenSistem = String(sessionData.exit_token || "").trim().toUpperCase();
     
-    // 1. BIDIK TOMBOL SECARA ABSOLUT MENGGUNAKAN ID (ANTI SALAH SASARAN)
     const btnExit = document.getElementById('btnFinalExit'); 
     const originalText = 'KELUAR';
 
-    // 2. PROTEKSI AWAL: Jika kotak input masih kosong, hadang di tempat dan jangan biarkan loading!
     if (inputUser === "") {
         document.getElementById('exitErrorMsg').classList.remove('hidden');
         document.getElementById('exitTokenInput').focus();
@@ -655,17 +708,11 @@ async function konfirmasiKeluar(e) {
             btnExit.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-1"></i> KELUAR...';
         }
         try {
-            await eksekusiGAS({
-                action: 'recordHeartbeat',
-                npsn: sessionData.npsn,
-                nisn: sessionData.nisn,
-                exam_id: sessionData.exam_id,
-                session_status: 'DONE',
-                fullscreen_status: 'FULL',
-                browser_info: navigator.userAgent,
-                device_info: `${navigator.platform} | ${navigator.vendor}`,
-                ip_address: sessionData.userIP
-            });
+            // Update status sesi menjadi DONE di Supabase
+            await db
+                .from('live_sessions')
+                .update({ session_status: 'DONE' })
+                .eq('student_nisn', sessionData.nisn);
         } catch (err) { console.log("Gagal update status DONE, paksa reset."); }
         setTimeout(() => { resetExamSession(); }, 300);
     } else {
@@ -673,7 +720,6 @@ async function konfirmasiKeluar(e) {
         const tokenInput = document.getElementById('exitTokenInput');
         if (tokenInput) { tokenInput.value = ""; tokenInput.focus(); }
         
-        // 3. KEMBALIKAN TOMBOL KE STATUS SEMULA SECARA PAKSA TANPA SYARAT TAGNAME
         if (btnExit) { 
             btnExit.disabled = false; 
             btnExit.innerText = originalText; 
@@ -683,7 +729,7 @@ async function konfirmasiKeluar(e) {
 
 function resetExamSession() {
     isExamActive = false;
-      window.isForceClosing = false;
+    window.isForceClosing = false;
     if (sessionData.heartbeatInterval) clearInterval(sessionData.heartbeatInterval);
     if (timerInterval) clearInterval(timerInterval);
     stopAlarm();
@@ -697,7 +743,6 @@ function resetExamSession() {
     document.getElementById('loginSection').classList.remove('hidden');
     document.getElementById('examTimer').innerText = "00:00:00";
 
-    if (document.getElementById('tokenInput')) document.getElementById('tokenInput').value = "";
     if (document.getElementById('exitTokenInput')) document.getElementById('exitTokenInput').value = "";
 
     currentZoom = 100; correctToken = ""; examLink = ""; sessionData.exam_id = ""; sessionData.exit_token = "";
