@@ -39,6 +39,7 @@ window.onload = () => {
         document.getElementById('rememberId').checked = true;
     }
     fetchIP();
+    loadSchoolOptions(); // Memuat daftar sekolah dinamis dari Supabase
 };
 
 async function fetchIP() {
@@ -85,21 +86,32 @@ function showNotif(msg, type = 'info') {
    ===================================================== */
 async function handleLogin(e) {
     e.preventDefault();
+    const schoolInput = document.getElementById('schoolSearchInput').value.trim();
     const nisnInput = document.getElementById('studentId').value.trim();
     const btn = document.getElementById('submitBtn');
+
+    // Ekstrak NPSN dari dalam tanda kurung, contoh: "SMP Negeri 28 (10203040)" -> "10203040"
+    const npsnMatch = schoolInput.match(/\(([^)]+)\)$/);
+    if (!npsnMatch) {
+        showNotif('Pilih asal sekolah yang valid dari daftar', 'error');
+        return;
+    }
+    const selectedNpsn = npsnMatch[1];
+
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memverifikasi...';
     
     try {
-        // 1. Ambil data siswa dari tabel Supabase
+        // 1. Ambil data siswa berdasarkan NISN dan NPSN sekolah yang dipilih
         const { data: student, error: studentError } = await db
             .from('students')
             .select('*, schools(school_name)')
             .eq('nisn', nisnInput)
+            .eq('school_npsn', selectedNpsn)
             .single();
 
         if (studentError || !student) {
-            showNotif('NISN tidak ditemukan', 'error');
+            showNotif('NISN tidak ditemukan pada sekolah tersebut', 'error');
             return;
         }
 
@@ -126,7 +138,6 @@ async function handleLogin(e) {
 
         if (configRows) {
             configRows.forEach(cfg => {
-                // Utamakan config spesifik sekolah, timpa nilai global
                 if (cfg.school_npsn === schoolNpsn || !configMap[cfg.key]) {
                     if (cfg.value === 'TRUE' || cfg.value === 'true') configMap[cfg.key] = true;
                     else if (cfg.value === 'FALSE' || cfg.value === 'false') configMap[cfg.key] = false;
@@ -159,7 +170,7 @@ async function handleLogin(e) {
         document.getElementById('studentClass').innerText = student.class_name;
         document.getElementById('studentSchool').innerText = student.schools?.school_name || "Sekolah";
 
-        // 4. Ambil daftar ujian aktif yang sesuai dengan siswa
+        // 4. Ambil daftar ujian aktif
         await fetchAndRenderActiveExams(student);
         showNotif('Identitas terverifikasi', 'success');
 
@@ -168,7 +179,7 @@ async function handleLogin(e) {
         console.error(err);
     } finally {
         btn.disabled = false;
-        btn.innerHTML = 'Verifikasi ID';
+        btn.innerHTML = 'Verifikasi & Masuk Ujian';
     }
 }
 
@@ -179,7 +190,6 @@ async function fetchAndRenderActiveExams(student) {
     const container = document.getElementById('examContainer');
     const nowISO = new Date().toISOString();
 
-    // Ambil ujian aktif berdasarkan sekolah dan rentang waktu start_time <= now <= end_time
     const { data: exams, error } = await db
         .from('exams')
         .select('*')
@@ -215,9 +225,8 @@ async function fetchAndRenderActiveExams(student) {
         return;
     }
 
-    // Render kartu pilihan ujian (Multi-Exam List)
     let htmlContent = '<div class="space-y-4 text-left">';
-    validExams.forEach((exam, index) => {
+    validExams.forEach((exam) => {
         const startTimeStr = new Date(exam.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const endTimeStr = new Date(exam.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -268,7 +277,6 @@ async function selectAndStartExam(examId, subjectEncoded, token, link, durationM
         await enterFullscreen();
         aktifkanWakeLock();
 
-        // Daftarkan sesi ke live_sessions Supabase
         await recordSessionToSupabase('ONLINE', 'FULL');
 
         if (sessionData.heartbeat_enabled) {
@@ -360,7 +368,6 @@ async function recordSessionToSupabase(status = 'ONLINE', fullscreenStatus = 'FU
     try {
         const deviceInfoStr = `${navigator.platform} | ${navigator.vendor}`;
 
-        // 1. Cek Validasi Multi-Device jika diaktifkan config-nya
         if (!sessionData.allow_multi_device && status === 'ONLINE') {
             const { data: existingSessions } = await db
                 .from('live_sessions')
@@ -377,13 +384,12 @@ async function recordSessionToSupabase(status = 'ONLINE', fullscreenStatus = 'FU
             }
         }
 
-        // 2. Upsert Sesi ke tabel live_sessions (berdasarkan Unique Index student_nisn & device_info)
         const { data, error } = await db
             .from('live_sessions')
             .upsert({
                 school_npsn: sessionData.npsn,
                 student_nisn: sessionData.nisn,
-                student_name: sessionData.student_name, // Trigger database juga akan mengamankan ini
+                student_name: sessionData.student_name,
                 exam_id: sessionData.exam_id,
                 session_status: status,
                 fullscreen_status: fullscreenStatus === 'FULL',
@@ -396,7 +402,6 @@ async function recordSessionToSupabase(status = 'ONLINE', fullscreenStatus = 'FU
 
         if (error) throw error;
 
-        // Cek jika status di-kick atau di-banned oleh admin
         if (data && data.length > 0) {
             const currentSession = data[0];
             if (currentSession.session_status === 'KICKED') {
@@ -545,7 +550,6 @@ async function triggerViolation(type) {
     if(audio) audio.play();
 
     try {
-        // 1. Simpan log pelanggaran ke tabel violations Supabase
         await db.from('violations').insert([{
             school_npsn: sessionData.npsn,
             student_nisn: sessionData.nisn,
@@ -555,7 +559,6 @@ async function triggerViolation(type) {
             severity: 'WARNING'
         }]);
 
-        // 2. Ambil dan update violation_count di live_sessions
         const { data: sessionRow } = await db
             .from('live_sessions')
             .select('violation_count')
@@ -571,17 +574,14 @@ async function triggerViolation(type) {
             .eq('student_nisn', sessionData.nisn)
             .eq('exam_id', sessionData.exam_id);
 
-        // 3. Cek batas max_violation & auto-kick
         let maxLimit = sessionData.max_violation;
         if (maxLimit !== "UNLIMITED" && sessionData.auto_kick_enabled) {
             if (newCount >= parseInt(maxLimit)) {
-                // Update status jadi KICKED
                 await db
                     .from('live_sessions')
                     .update({ session_status: 'KICKED' })
                     .eq('student_nisn', sessionData.nisn);
 
-                // Nonaktifkan status akun siswa
                 await db
                     .from('students')
                     .update({ account_status: 'INACTIVE' })
@@ -708,7 +708,6 @@ async function konfirmasiKeluar(e) {
             btnExit.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-1"></i> KELUAR...';
         }
         try {
-            // Update status sesi menjadi DONE di Supabase
             await db
                 .from('live_sessions')
                 .update({ session_status: 'DONE' })
@@ -750,4 +749,57 @@ function resetExamSession() {
 
     const remember = document.getElementById('rememberId').checked;
     if (!remember) { localStorage.removeItem('smartExam_id'); document.getElementById('studentId').value = ""; }
+}
+
+/* =====================================================
+   FITUR TAB & SCHOOL AUTOCOMPLETE (MULTI-SCHOOL)
+   ===================================================== */
+function switchLoginRole(role) {
+    const studentBtn = document.getElementById('tabStudentBtn');
+    const teacherBtn = document.getElementById('tabTeacherBtn');
+    const studentSec = document.getElementById('studentLoginSection');
+    const teacherSec = document.getElementById('teacherLoginSection');
+
+    if (role === 'student') {
+        studentBtn.className = "py-2.5 text-xs font-bold rounded-xl transition-all bg-white text-indigo-600 shadow-sm";
+        teacherBtn.className = "py-2.5 text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800";
+        studentSec.classList.remove('hidden');
+        teacherSec.classList.add('hidden');
+    } else {
+        teacherBtn.className = "py-2.5 text-xs font-bold rounded-xl transition-all bg-white text-indigo-600 shadow-sm";
+        studentBtn.className = "py-2.5 text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800";
+        teacherSec.classList.remove('hidden');
+        studentSec.classList.add('hidden');
+    }
+}
+
+function handleTeacherLoginPlaceholder() {
+    showNotif('Modul Dashboard Guru sedang disiapkan!', 'info');
+}
+
+function handleSchoolRegistrationPlaceholder() {
+    showNotif('Fitur registrasi sekolah mandiri segera hadir.', 'info');
+}
+
+async function loadSchoolOptions() {
+    try {
+        const { data: schools, error } = await db
+            .from('schools')
+            .select('npsn, school_name')
+            .eq('is_active', true);
+
+        if (error) throw error;
+
+        const datalist = document.getElementById('schoolOptionsList');
+        if (datalist && schools) {
+            datalist.innerHTML = '';
+            schools.forEach(school => {
+                const option = document.createElement('option');
+                option.value = `${school.school_name} (${school.npsn})`;
+                datalist.appendChild(option);
+            });
+        }
+    } catch (err) {
+        console.error("Gagal memuat daftar sekolah:", err);
+    }
 }
