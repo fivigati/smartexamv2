@@ -895,7 +895,7 @@ async function handleModalRegistration(e) {
             showNotif(`Gagal: NPSN ${npsn} sudah terdaftar atas nama sekolah "${existingSchool.school_name}"!`, 'error');
             btn.disabled = false;
             btn.innerHTML = 'Simpan & Daftarkan Sekolah';
-            return; // Hentikan proses pendaftaran
+            return;
         }
 
         // 2. VALIDASI PRE-CHECK: Cek apakah Email sudah digunakan oleh user/proktor lain
@@ -911,13 +911,29 @@ async function handleModalRegistration(e) {
             showNotif(`Gagal: Email ${email} sudah digunakan oleh operator lain!`, 'error');
             btn.disabled = false;
             btn.innerHTML = 'Simpan & Daftarkan Sekolah';
-            return; // Hentikan proses pendaftaran
+            return;
+        }
+
+        // 3. VALIDASI PRE-CHECK: Cek apakah Nomor WhatsApp sudah digunakan
+        const { data: existingWa, error: checkWaError } = await db
+            .from('schools')
+            .select('whatsapp_number, school_name')
+            .eq('whatsapp_number', whatsapp)
+            .maybeSingle();
+
+        if (checkWaError) throw checkWaError;
+
+        if (existingWa) {
+            showNotif(`Gagal: Nomor WhatsApp ${whatsapp} sudah digunakan oleh sekolah "${existingWa.school_name}"!`, 'error');
+            btn.disabled = false;
+            btn.innerHTML = 'Simpan & Daftarkan Sekolah';
+            return;
         }
 
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memproses pendaftaran...';
 
-        // 3. Simpan ke Database Supabase (Tabel schools)
-        const { error: schoolError } = await db.from('schools'].insert({
+        // 4. Simpan ke Database Supabase (Tabel schools) - DIPERBAIKI (Kurung siku diganti titik)
+        const { error: schoolError } = await db.from('schools').insert({
             npsn: npsn,
             school_name: schoolName,
             email: email,
@@ -927,7 +943,7 @@ async function handleModalRegistration(e) {
 
         if (schoolError) throw schoolError;
 
-        // 4. Simpan ke Database Supabase (Tabel users untuk login admin)
+        // 5. Simpan ke Database Supabase (Tabel users untuk login admin)
         const { error: userError } = await db.from('users').insert({
             school_npsn: npsn,
             school_name: schoolName,
@@ -940,7 +956,7 @@ async function handleModalRegistration(e) {
 
         if (userError) throw userError;
 
-        // 5. Kirim data ke Google Sheets melalui URL Web App Google Apps Script
+        // 6. Kirim data ke Google Sheets melalui URL Web App Google Apps Script
         const googleScriptUrl = "https://script.google.com/macros/s/AKfycbwhnXGN_a1nQdTkHsuVuTvNAhp_1LQbj6m4uPTzNd4gusB_Z7IL_tbp5YmE2WZcm1ZeNA/exec";
         if (googleScriptUrl && googleScriptUrl.startsWith("https://")) {
             fetch(googleScriptUrl, {
