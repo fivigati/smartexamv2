@@ -132,7 +132,7 @@
                 <i class="fas fa-right-to-bracket mr-2"></i> Masuk Dashboard Guru
             </button>
 
-            <button onclick="handleSchoolRegistrationPlaceholder()" class="w-full py-3 bg-white/70 hover:bg-white text-purple-600 border border-purple-200 font-bold rounded-2xl text-xs tracking-wide transition-all shadow-sm">
+            <button onclick="toggleRegisterModal(true)" class="w-full py-3 bg-white/70 hover:bg-white text-purple-600 border border-purple-200 font-bold rounded-2xl text-xs tracking-wide transition-all shadow-sm">
                 <i class="fas fa-school-circle-check mr-2"></i> Daftarkan Sekolah Baru (Free Plan)
             </button>
         </div>
@@ -151,7 +151,52 @@
     <!-- Section Identitas Siswa Setelah Berhasil Login -->
     <div id="studentSection" class="hidden fixed inset-0 bg-[#F4F7FF] z-[100] flex flex-col p-5 max-w-md mx-auto my-auto overflow-y-auto">
     </div>
+<!-- Modal Form Pendaftaran (Tersembunyi Awalnya) -->
+<div id="registerModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-md glass-card rounded-[2.5rem] p-8 relative overflow-hidden bg-white/95 shadow-2xl animate-fade-in">
+        
+        <!-- Tombol Close Modal -->
+        <button onclick="toggleRegisterModal(false)" class="absolute top-6 right-6 text-slate-400 hover:text-slate-700">
+            <i class="fas fa-xmark text-lg"></i>
+        </button>
 
+        <div class="text-center mb-6">
+            <div class="w-14 h-14 bg-gradient-to-tr from-violet-600 to-pink-500 rounded-2xl mx-auto flex items-center justify-center text-white shadow-lg mb-3">
+                <i class="fas fa-school-circle-check text-xl"></i>
+            </div>
+            <h2 class="text-xl font-extrabold text-slate-800">Daftar Sekolah Baru</h2>
+            <p class="text-slate-500 text-xs mt-1">Aktivasi instan untuk Smart Exam V2</p>
+        </div>
+
+        <!-- Form Input -->
+        <form onsubmit="handleModalRegistration(event)" class="space-y-3">
+            <div>
+                <label class="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1 ml-1">NPSN Sekolah</label>
+                <input type="text" id="mRegNpsn" placeholder="Contoh: 70030581" required
+                    class="block w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-xs font-semibold focus:bg-white focus:border-purple-400 outline-none">
+            </div>
+            <div>
+                <label class="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1 ml-1">Nama Sekolah</label>
+                <input type="text" id="mRegSchoolName" placeholder="Contoh: SMP Negeri 28 Malang" required
+                    class="block w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-xs font-semibold focus:bg-white focus:border-purple-400 outline-none">
+            </div>
+            <div>
+                <label class="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1 ml-1">No. WhatsApp Proktor</label>
+                <input type="text" id="mRegWhatsapp" placeholder="Contoh: 081234567890" required
+                    class="block w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-xs font-semibold focus:bg-white focus:border-purple-400 outline-none">
+            </div>
+            <div>
+                <label class="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1 ml-1">Password Admin</label>
+                <input type="password" id="mRegPassword" placeholder="Minimal 6 karakter" required minlength="6"
+                    class="block w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-xs font-semibold focus:bg-white focus:border-purple-400 outline-none">
+            </div>
+
+            <button type="submit" id="mSubmitBtn" class="w-full py-3 bg-gradient-to-r from-violet-600 to-pink-500 text-white font-bold rounded-xl text-xs shadow-md mt-2">
+                Simpan & Daftarkan Sekolah
+            </button>
+        </form>
+    </div>
+</div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/config.js"></script>
     <script src="js/app.js"></script>
