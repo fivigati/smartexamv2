@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Exam V2 - Secure Examination Platform</title>
     <link rel="icon" type="image/png" href="favicon.png?v=2" />
-    <meta name="theme-color" content="#4f46e5" />
+    <meta name="theme-color" content="#ec4899" />
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -13,15 +13,18 @@
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #312e81 100%);
+            /* Gradasi soft: Ungu, Pink, dan Biru */
+            background: linear-gradient(135deg, #818cf8 0%, #c084fc 45%, #f472b6 100%);
             min-height: 100vh;
         }
         .glass-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
         }
-        /* Sembunyikan panah default datalist agar lebih bersih */
+        /* Sembunyikan panah default datalist */
         input::-webkit-calendar-picker-indicator {
             display: none !important;
         }
@@ -30,7 +33,7 @@
 <body class="flex items-center justify-center p-4">
 
     <!-- Notifikasi Floating -->
-    <div id="notification" class="fixed top-8 left-1/2 -translate-x-1/2 flex items-center p-4 rounded-2xl bg-white shadow-2xl border border-slate-50 max-w-sm w-[90%] transition-all duration-500 -translate-y-[250%] z-[300]">
+    <div id="notification" class="fixed top-8 left-1/2 -translate-x-1/2 flex items-center p-4 rounded-2xl bg-white/90 backdrop-blur-md shadow-2xl border border-white/50 max-w-sm w-[90%] transition-all duration-500 -translate-y-[250%] z-[300]">
         <div id="notif-color" class="w-10 h-10 rounded-full flex items-center justify-center mr-3">
             <i id="notif-icon" class="text-white"></i>
         </div>
@@ -38,27 +41,27 @@
     </div>
 
     <!-- Container Utama Login Card -->
-    <div class="w-full max-w-md glass-card rounded-[2.5rem] shadow-2xl p-8 relative overflow-hidden my-auto fade-in">
+    <div class="w-full max-w-md glass-card rounded-[2.5rem] p-8 relative overflow-hidden my-auto fade-in">
         
-        <!-- Background Glow Accent -->
-        <div class="absolute -top-24 -right-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div class="absolute -bottom-24 -left-24 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <!-- Background Glow Accent (Pink & Purple) -->
+        <div class="absolute -top-24 -right-24 w-48 h-48 bg-pink-400/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 -left-24 w-48 h-48 bg-indigo-400/20 rounded-full blur-3xl pointer-events-none"></div>
 
         <!-- Logo / Header -->
         <div class="text-center mb-6">
-            <div class="w-16 h-16 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-2xl mx-auto flex items-center justify-center text-white shadow-xl shadow-indigo-500/30 mb-4 transform hover:rotate-6 transition-transform">
+            <div class="w-16 h-16 bg-gradient-to-tr from-violet-600 via-purple-600 to-pink-500 rounded-2xl mx-auto flex items-center justify-center text-white shadow-xl shadow-pink-500/20 mb-4 transform hover:rotate-6 transition-transform">
                 <i class="fas fa-graduation-cap text-2xl"></i>
             </div>
-            <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Smart Exam <span class="text-indigo-600">V2</span></h1>
-            <p class="text-slate-400 text-xs mt-1 font-medium">Platform Ujian Sekolah Terintegrasi & Aman</p>
+            <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Smart Exam <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-500">V2</span></h1>
+            <p class="text-slate-500 text-xs mt-1 font-medium">Platform Ujian Sekolah Terintegrasi & Aman</p>
         </div>
 
         <!-- Tab Pemilihan Peran (Siswa / Guru) -->
-        <div class="grid grid-cols-2 gap-1.5 bg-slate-100/80 p-1.5 rounded-2xl mb-6">
-            <button type="button" id="tabStudentBtn" onclick="switchLoginRole('student')" class="py-2.5 text-xs font-bold rounded-xl transition-all bg-white text-indigo-600 shadow-sm">
+        <div class="grid grid-cols-2 gap-1.5 bg-white/50 backdrop-blur-sm p-1.5 rounded-2xl mb-6 border border-white/60">
+            <button type="button" id="tabStudentBtn" onclick="switchLoginRole('student')" class="py-2.5 text-xs font-bold rounded-xl transition-all bg-white text-purple-600 shadow-sm">
                 <i class="fas fa-user-graduate mr-1.5"></i> Siswa
             </button>
-            <button type="button" id="tabTeacherBtn" onclick="switchLoginRole('teacher')" class="py-2.5 text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800">
+            <button type="button" id="tabTeacherBtn" onclick="switchLoginRole('teacher')" class="py-2.5 text-xs font-bold rounded-xl transition-all text-slate-600 hover:text-slate-900">
                 <i class="fas fa-chalkboard-user mr-1.5"></i> Guru / Admin
             </button>
         </div>
@@ -69,39 +72,38 @@
                 
                 <!-- Pencarian Sekolah Dinamis (Autocomplete) -->
                 <div>
-                    <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Asal Sekolah</label>
+                    <label class="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Asal Sekolah</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <i class="fas fa-school text-indigo-400"></i>
+                            <i class="fas fa-school text-purple-400"></i>
                         </div>
                         <input type="text" id="schoolSearchInput" list="schoolOptionsList" placeholder="Ketik nama sekolah Anda..." autocomplete="off" required
-                            class="block w-full pl-11 pr-4 py-3 bg-[#F8FAFF] border border-[#EDF2FF] rounded-2xl text-slate-700 text-xs font-semibold focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all">
+                            class="block w-full pl-11 pr-4 py-3 bg-white/70 border border-white/80 rounded-2xl text-slate-700 text-xs font-semibold focus:bg-white focus:border-purple-400 focus:ring-4 focus:ring-purple-400/10 outline-none transition-all shadow-sm">
                         
-                        <!-- Datalist yang diisi otomatis dari tabel Supabase -->
                         <datalist id="schoolOptionsList"></datalist>
                     </div>
                 </div>
 
                 <!-- Input NISN / ID Siswa -->
                 <div>
-                    <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">NISN / ID Peserta</label>
+                    <label class="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">NISN / ID Peserta</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <i class="fas fa-fingerprint text-indigo-400"></i>
+                            <i class="fas fa-fingerprint text-purple-400"></i>
                         </div>
                         <input type="text" id="studentId" placeholder="Masukkan NISN Anda" required
-                            class="block w-full pl-11 pr-4 py-3 bg-[#F8FAFF] border border-[#EDF2FF] rounded-2xl text-slate-700 text-xs font-semibold focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all">
+                            class="block w-full pl-11 pr-4 py-3 bg-white/70 border border-white/80 rounded-2xl text-slate-700 text-xs font-semibold focus:bg-white focus:border-purple-400 focus:ring-4 focus:ring-purple-400/10 outline-none transition-all shadow-sm">
                     </div>
                 </div>
 
                 <div class="flex items-center justify-between text-[11px] px-1 pt-1">
-                    <label class="flex items-center gap-2 cursor-pointer text-slate-400 font-medium">
-                        <input type="checkbox" id="rememberId" class="rounded text-indigo-600 focus:ring-indigo-500"> Ingat ID saya
+                    <label class="flex items-center gap-2 cursor-pointer text-slate-500 font-medium">
+                        <input type="checkbox" id="rememberId" class="rounded text-purple-600 focus:ring-purple-500"> Ingat ID saya
                     </label>
-                    <a href="#" onclick="showNotif('Silakan hubungi proktor sekolah Anda', 'info')" class="text-indigo-600 font-bold hover:underline">Bantuan?</a>
+                    <a href="#" onclick="showNotif('Silakan hubungi proktor sekolah Anda', 'info')" class="text-purple-600 font-bold hover:underline">Bantuan?</a>
                 </div>
 
-                <button type="submit" id="submitBtn" class="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold rounded-2xl text-xs tracking-wide shadow-lg shadow-indigo-600/30 transition-all active:scale-[0.98]">
+                <button type="submit" id="submitBtn" class="w-full py-3.5 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 hover:opacity-95 text-white font-bold rounded-2xl text-xs tracking-wide shadow-lg shadow-purple-500/25 transition-all active:scale-[0.98]">
                     Verifikasi & Masuk Ujian
                 </button>
             </form>
@@ -109,41 +111,37 @@
 
         <!-- ================= SECTION LOGIN GURU / ADMIN ================= -->
         <div id="teacherLoginSection" class="hidden space-y-4">
-            <div class="bg-indigo-50/60 border border-indigo-100 rounded-2xl p-4 text-center">
-                <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-2 text-sm">
+            <div class="bg-white/50 border border-white/60 rounded-2xl p-4 text-center backdrop-blur-sm">
+                <div class="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center mx-auto mb-2 text-sm shadow-sm">
                     <i class="fas fa-tools"></i>
                 </div>
                 <h3 class="text-xs font-bold text-slate-800 mb-1">Portal Guru & Proktor</h3>
                 <p class="text-[11px] text-slate-500 leading-relaxed">Kelola jadwal ujian, pantau sesi langsung, dan unduh laporan nilai.</p>
             </div>
 
-            <!-- Tombol CTA Sementaranya -->
             <button onclick="handleTeacherLoginPlaceholder()" class="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl text-xs tracking-wide shadow-lg transition-all active:scale-[0.98]">
                 <i class="fas fa-right-to-bracket mr-2"></i> Masuk Dashboard Guru
             </button>
 
-            <button onclick="handleSchoolRegistrationPlaceholder()" class="w-full py-3 bg-white hover:bg-slate-50 text-indigo-600 border border-indigo-200 font-bold rounded-2xl text-xs tracking-wide transition-all">
+            <button onclick="handleSchoolRegistrationPlaceholder()" class="w-full py-3 bg-white/70 hover:bg-white text-purple-600 border border-purple-200 font-bold rounded-2xl text-xs tracking-wide transition-all shadow-sm">
                 <i class="fas fa-school-circle-check mr-2"></i> Daftarkan Sekolah Baru (Free Plan)
             </button>
         </div>
 
         <!-- Footer Keamanan Info -->
-        <div class="mt-6 pt-4 border-t border-slate-100 flex gap-3 items-center">
-            <div class="bg-indigo-50 p-2.5 rounded-xl text-indigo-500 text-xs shrink-0">
+        <div class="mt-6 pt-4 border-t border-white/40 flex gap-3 items-center">
+            <div class="bg-white/60 p-2.5 rounded-xl text-purple-500 text-xs shrink-0 shadow-sm">
                 <i class="fas fa-shield-alt"></i>
             </div>
-            <p class="text-[10px] font-medium text-slate-400 leading-relaxed">
+            <p class="text-[10px] font-medium text-slate-500 leading-relaxed">
                 Sistem pengaman otomatis aktif. Browser terkunci selama ujian berlangsung.
             </p>
         </div>
     </div>
 
-    <!-- Section Identitas Siswa Setelah Berhasil Login (Sama seperti sebelumnya) -->
+    <!-- Section Identitas Siswa Setelah Berhasil Login -->
     <div id="studentSection" class="hidden fixed inset-0 bg-[#F4F7FF] z-[100] flex flex-col p-5 max-w-md mx-auto my-auto overflow-y-auto">
-        <!-- (Bagian ini akan menampilkan identitas & daftar ujian aktif siswa) -->
     </div>
-
-    <!-- (Modul Modal Ujian, Exit, Security, dll tetap dipertahankan sesuai file sebelumnya) -->
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/config.js"></script>
