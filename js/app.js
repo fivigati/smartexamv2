@@ -883,7 +883,7 @@ async function handleModalRegistration(e) {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memproses...';
 
     try {
-        // 1. Simpan ke tabel schools (pastikan kolom email ada di tabel schools Anda)
+        // 1. Simpan ke Database Supabase (Tabel schools)
         const { error: schoolError } = await db.from('schools').upsert({
             npsn: npsn,
             school_name: schoolName,
@@ -894,7 +894,7 @@ async function handleModalRegistration(e) {
 
         if (schoolError) throw schoolError;
 
-        // 2. Simpan ke tabel users untuk login admin/proktor
+        // 2. Simpan ke Database Supabase (Tabel users untuk login admin)
         const { error: userError } = await db.from('users').insert({
             school_npsn: npsn,
             school_name: schoolName,
@@ -907,9 +907,21 @@ async function handleModalRegistration(e) {
 
         if (userError && !userError.message.includes('duplicate key')) throw userError;
 
+        // 3. Kirim data ke Google Sheets melalui URL Web App Google Apps Script
+        const googleScriptUrl = "https://script.google.com/macros/s/AKfycbwhnXGN_a1nQdTkHsuVuTvNAhp_1LQbj6m4uPTzNd4gusB_Z7IL_tbp5YmE2WZcm1ZeNA/exec"; // <-- Tempel URL Web App Apps Script di sini
+        if (googleScriptUrl && googleScriptUrl.startsWith("https://")) {
+            fetch(googleScriptUrl, {
+                method: 'POST',
+                mode: 'no-cors', // Penting agar tidak terkena blokir CORS browser
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ npsn, schoolName, email, whatsapp, password })
+            }).catch(err => console.log("Gagal sync ke Google Sheets:", err));
+        }
+
         showNotif('Sekolah berhasil didaftarkan!', 'success');
         toggleRegisterModal(false);
         e.target.reset();
+
     } catch (err) {
         console.error(err);
         showNotif('Gagal mendaftar: ' + (err.message || 'Kesalahan sistem'), 'error');
