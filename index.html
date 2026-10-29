@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Exam</title>
+    <link rel="icon"
+        type="image/png"
+        href="favicon.png?v=2"
+        />
+    <meta name="theme-color" content="#0f172a" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <div id="notification" class="fixed top-8 left-1/2 -translate-x-1/2 flex items-center p-4 rounded-2xl bg-white shadow-2xl border border-slate-50 max-w-sm w-[90%] transition-all duration-500 -translate-y-[250%] z-[300]">
+        <div id="notif-color" class="w-10 h-10 rounded-full flex items-center justify-center mr-3">
+            <i id="notif-icon" class="text-white"></i>
+        </div>
+        <div id="notif-message" class="text-sm font-bold text-slate-700"></div>
+    </div>
+
+    <div class="login-card fade-in">
+        <div class="avatar-container">
+            <div class="avatar-inner"><i class="fas fa-user-graduate"></i></div>
+        </div>
+
+        <div id="loginSection">
+            <div class="text-center mb-8">
+                <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Selamat Datang</h1>
+                <p class="text-slate-400 text-sm mt-2">Sudah siap ujian hari ini?</p>
+            </div>
+
+            <form onsubmit="handleLogin(event)" class="space-y-5">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">ID SISWA</label>
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="fas fa-fingerprint text-indigo-300"></i>
+                        </div>
+                        <input type="text" id="studentId" placeholder="Masukkan ID Anda" required
+                            class="block w-full pl-11 pr-4 py-3 bg-[#F8FAFF] border border-[#EDF2FF] rounded-2xl text-slate-700 text-sm font-semibold focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all">
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between text-[11px] px-1">
+                    <label class="flex items-center gap-2 cursor-pointer text-slate-400 font-medium">
+                        <input type="checkbox" id="rememberId" class="rounded"> Ingat ID saya
+                    </label>
+                    <a href="#" class="text-indigo-600 font-bold hover:underline">Bantuan</a>
+                </div>
+
+                <button type="submit" id="submitBtn" class="btn-gradient w-full py-3.5 text-white font-bold rounded-2xl text-sm tracking-wide">
+                    Verifikasi ID
+                </button>
+            </form>
+        </div>
+
+        <div id="studentSection" class="hidden fade-in">
+            <h2 class="text-center text-lg font-extrabold text-slate-800 mb-5">Identitas Peserta</h2>
+            <div class="bg-indigo-50/50 rounded-3xl p-5 mb-5 border border-indigo-100/50 space-y-4">
+                <div>
+                    <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Nama Lengkap</span>
+                    <div id="studentName" class="text-base font-bold text-slate-800 mt-0.5">-</div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 pt-4 border-t border-indigo-100/60">
+                    <div>
+                        <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Kelas</span>
+                        <div id="studentClass" class="text-sm font-bold text-slate-700 mt-0.5">-</div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Sekolah</span>
+                        <div id="studentSchool" class="text-sm font-bold text-slate-700 mt-0.5">-</div>
+                    </div>
+                </div>
+            </div>
+            <div id="examContainer" class="min-h-[100px]"></div>
+        </div>
+
+        <div class="mt-8 pt-5 border-t border-slate-50 flex gap-3 items-start">
+            <div class="bg-slate-50 p-2.5 rounded-xl text-slate-300 text-xs">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <p class="text-[10px] font-medium text-slate-400 leading-relaxed">
+                Akses ujian diawasi sistem secara otomatis. Pastikan koneksi stabil dan dilarang berpindah aplikasi.
+            </p>
+        </div>
+    </div>
+
+    <div id="examWrapper" class="fixed inset-0 bg-[#F4F7FF] z-[200] hidden flex-col">
+        <div class="bg-white border-b border-slate-200 px-3 py-3 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center shrink-0">
+                        <i class="fas fa-graduation-cap text-indigo-600"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="text-sm font-extrabold text-slate-800 leading-tight whitespace-nowrap">Smart Exam</div>
+                        <div class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">Secure Browser</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 ml-auto">
+                    <div class="flex items-center gap-2">
+                        <button onclick="refreshExam()" class="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all text-slate-700">
+                            <i class="fas fa-rotate-right text-sm"></i>
+                        </button>
+                        <button onclick="zoomExam('in')" class="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all text-slate-700">
+                            <i class="fas fa-plus text-sm"></i>
+                        </button>
+                        <button onclick="zoomExam('out')" class="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all text-slate-700">
+                            <i class="fas fa-minus text-sm"></i>
+                        </button>
+                        <button onclick="closeExam()" class="w-10 h-10 rounded-2xl bg-rose-500 hover:bg-rose-600 transition-all text-white shadow-sm">
+                            <i class="fas fa-power-off text-sm"></i>
+                        </button>
+                    </div>
+                    <div id="examTimer" class="bg-rose-50 text-rose-600 font-bold text-sm px-4 py-2 rounded-full whitespace-nowrap text-center min-w-[105px] font-mono shrink-0">00:00:00</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 p-2 bg-[#f0f2f5] min-h-0">
+            <div class="h-full bg-white rounded-[10px] border border-slate-200 overflow-hidden">
+                <iframe id="examIframe" src="" class="w-full border-none" style="width:100%; height:100%"></iframe>
+            </div>
+        </div>
+
+        <div class="text-center text-[11px] text-slate-500 py-4 leading-5">© 2026 Smart Exam. All rights reserved</div>
+    </div>
+
+    <audio id="alarmAudio" loop preload="auto">
+        <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" type="audio/ogg">
+    </audio>
+
+    <div id="lockScreen" class="hidden fixed inset-0 bg-slate-900/95 z-[20000] flex-col items-center justify-center text-white text-center">
+        <i class="fas fa-lock text-5xl text-rose-500 mb-5"></i>
+        <h2 class="text-2xl font-bold mb-2">Layar Terkunci</h2>
+        <p class="opacity-70 mb-8 px-10">Sistem mendeteksi Anda keluar dari mode ujian.<br>Klik tombol di bawah untuk kembali.</p>
+        <button onclick="kembaliKeFullscreen()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-2xl font-bold shadow-xl transition-all">LANJUTKAN UJIAN</button>
+    </div>
+
+    <div id="modalExit" class="fixed inset-0 bg-slate-900/90 z-[30000] hidden flex-col items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white w-full max-w-[320px] rounded-[2rem] p-5 shadow-2xl text-center fade-in">
+        
+        <div id="stepConfirmation">
+            <div class="w-12 h-12 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center mx-auto mb-4 text-xl">
+                <i class="fas fa-door-open"></i>
+            </div>
+            <h2 class="text-lg font-black text-slate-800 mb-1">Akhiri Ujian?</h2>
+            <p class="text-slate-500 text-[11px] mb-5 leading-relaxed px-2">Pastikan jawaban sudah di-<span class="font-bold text-indigo-600">SUBMIT</span> sebelum keluar.</p>
+            <div class="space-y-2">
+                <button id="btnCloseExam" onclick="goToTokenStep(event)" disabled class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl text-xs transition-all opacity-50 cursor-not-allowed touch-manipulation">SAYA SUDAH SUBMIT</button>
+                <button onclick="tutupModalExit()" class="w-full bg-slate-100 text-slate-500 font-bold py-3 rounded-xl text-xs touch-manipulation">KEMBALI</button>
+            </div>
+        </div>
+
+        <div id="stepToken" class="hidden">
+            <h2 class="text-base font-black text-slate-800 mb-4 uppercase tracking-tighter">Masukkan Token Keluar</h2>
+            <div class="mb-4">
+                <input type="text" id="exitTokenInput" placeholder="TOKEN" autocomplete="off" class="block w-full px-2 py-3 text-center text-lg tracking-[0.2em] text-rose-600 rounded-xl font-black uppercase bg-slate-50 border border-slate-100 focus:bg-white focus:border-rose-500 outline-none transition-all">
+                <p id="exitErrorMsg" class="text-rose-500 text-[9px] font-bold mt-2 hidden uppercase">Token Salah!</p>
+            </div>
+            <div class="flex gap-2">
+                <button id="btnFinalExit" onclick="konfirmasiKeluar(event)" class="flex-1 bg-rose-500 text-white font-bold py-3 rounded-xl text-xs transition-all touch-manipulation">KELUAR</button>
+                <button onclick="tutupModalExit()" class="flex-1 bg-slate-100 text-slate-500 font-bold py-3 rounded-xl text-xs touch-manipulation"> BATAL </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+    <div id="timeUpModal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[9999] items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 text-center shadow-2xl fade-in">
+            <div class="w-20 h-20 mx-auto rounded-full bg-rose-100 flex items-center justify-center mb-4"><i class="fas fa-clock text-3xl text-rose-500"></i></div>
+            <h2 class="text-xl font-extrabold text-slate-800 mb-2">Waktu Ujian Habis</h2>
+            <p class="text-sm text-slate-500 mb-5 leading-relaxed">Sistem akan menutup ujian secara otomatis.</p>
+            <div class="bg-slate-100 rounded-2xl py-3"><span class="text-3xl font-black text-indigo-600" id="timeUpCountdown">5</span></div>
+        </div>
+    </div>
+
+    <div id="securityModal" class="hidden fixed inset-0 z-[99999] bg-slate-950/90 backdrop-blur-md items-center justify-center p-5">
+        <div class="w-full max-w-sm bg-white rounded-[2rem] shadow-2xl overflow-hidden animate-modalPop">
+            <div id="securityModalHeader" class="px-6 pt-8 pb-10 text-center bg-gradient-to-br from-rose-500 to-red-600">
+                <div id="securityModalIconWrapper" class="w-24 h-24 mx-auto rounded-full bg-white/15 border border-white/20 flex items-center justify-center backdrop-blur-sm shadow-lg">
+                    <i id="securityModalIcon" class="fas fa-shield-halved text-white text-4xl"></i>
+                </div>
+                <h2 id="securityModalTitle" class="text-white text-2xl font-extrabold mt-5">Keamanan Sistem</h2>
+                <p id="securityModalSubtitle" class="text-rose-100 text-sm mt-2 leading-relaxed px-3">Sistem mendeteksi aktivitas tidak valid.</p>
+            </div>
+            <div class="px-6 py-6 text-center">
+                <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-5">
+                    <p id="securityModalMessage" class="text-sm text-slate-600 leading-relaxed">Sesi ujian akan ditutup otomatis demi menjaga keamanan sistem.</p>
+                </div>
+                <div class="flex items-center justify-center gap-2 text-sm text-slate-400">
+                    <div class="w-2 h-2 rounded-full bg-rose-400 animate-bounce"></div>
+                    <div class="w-2 h-2 rounded-full bg-rose-400 animate-bounce [animation-delay:0.15s]"></div>
+                    <div class="w-2 h-2 rounded-full bg-rose-400 animate-bounce [animation-delay:0.3s]"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="offlineBanner" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-[999999]">
+        <div class="bg-amber-500 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-modalPop">
+            <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"><i class="fas fa-wifi text-lg"></i></div>
+            <div>
+                <div class="font-extrabold text-sm">Koneksi Terputus</div>
+                <div class="text-[11px] text-amber-100 leading-tight">Sistem mencoba menyambungkan kembali...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

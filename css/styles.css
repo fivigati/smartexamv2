@@ -1,0 +1,88 @@
+:root {
+    --primary: #4f46e5;
+    --primary-dark: #3b82f6;
+    --bg-soft: #f0f2ff;
+}
+
+body { 
+    font-family: 'Plus Jakarta Sans', sans-serif; 
+    background: var(--bg-soft); 
+    min-height: 100vh; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    padding: 1rem;
+    overflow-x: hidden;
+}
+
+.login-card { 
+    background: white; 
+    border-radius: 2rem; 
+    box-shadow: 0 20px 60px -10px rgba(79, 70, 229, 0.08); 
+    width: 100%; 
+    max-width: 420px; 
+    position: relative; 
+    padding: 3rem 1.5rem 1.5rem;
+}
+
+.avatar-container {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 72px; height: 72px;
+    background: white;
+    border-radius: 50%;
+    padding: 5px;
+    box-shadow: 0 10px 20px -5px rgba(79, 70, 229, 0.1);
+}
+
+.avatar-inner {
+    width: 100%; height: 100%;
+    background: #f8faff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    font-size: 1.5rem;
+}
+
+.btn-gradient {
+    background: linear-gradient(135deg, #5c60f5 0%, #3b82f6 100%);
+    box-shadow: 0 10px 20px -5px rgba(79, 70, 229, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-gradient:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 25px -5px rgba(79, 70, 229, 0.4);
+    filter: brightness(1.05);
+}
+
+.btn-gradient:disabled { opacity: 0.7; cursor: not-allowed; }
+input[type="checkbox"] { accent-color: var(--primary); }
+
+#examIframe { 
+    transition: transform 0.2s ease; 
+    transform-origin: top left;
+    width: 100%; height: 100%;
+}
+
+.flex-1.p-2 { display: flex; flex-direction: column; }
+.h-full.bg-white { flex: 1; position: relative; overflow: hidden; }
+.fade-in { animation: fadeIn 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+        
+@keyframes fadeIn { 
+    from { opacity: 0; transform: translateY(10px); } 
+    to { opacity: 1; transform: translateY(0); } 
+}
+
+@keyframes modalPop {
+    0% { opacity: 0; transform: scale(0.9) translateY(20px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.animate-modalPop {
+    animation: modalPop 0.3s ease-out;
+    will-change: transform, opacity;
+}
