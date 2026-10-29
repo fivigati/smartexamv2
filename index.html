@@ -70,17 +70,26 @@
         <div id="studentLoginSection">
             <form onsubmit="handleLogin(event)" class="space-y-4">
                 
-                <!-- Pencarian Sekolah Dinamis (Autocomplete) -->
-                <div>
+                <!-- Pencarian Sekolah Interaktif -->
+                <div class="relative">
                     <label class="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Asal Sekolah</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                             <i class="fas fa-school text-purple-400"></i>
                         </div>
-                        <input type="text" id="schoolSearchInput" list="schoolOptionsList" placeholder="Ketik nama sekolah Anda..." autocomplete="off" required
+                        
+                        <!-- Input diketik manual dengan fungsi oninput -->
+                        <input type="text" id="schoolSearchInput" placeholder="Ketik nama sekolah Anda..." autocomplete="off" required oninput="filterSchools(this.value)"
                             class="block w-full pl-11 pr-4 py-3 bg-white/70 border border-white/80 rounded-2xl text-slate-700 text-xs font-semibold focus:bg-white focus:border-purple-400 focus:ring-4 focus:ring-purple-400/10 outline-none transition-all shadow-sm">
                         
-                        <datalist id="schoolOptionsList"></datalist>
+                        <!-- Hidden input untuk menyimpan NPSN yang valid secara sistem -->
+                        <input type="hidden" id="selectedNpsnValue" value="">
+                    </div>
+                    
+                    <!-- Kotak Dropdown Hasil Pencarian / Notifikasi Data Tidak Ditemukan -->
+                    <div id="schoolDropdown" class="absolute left-0 right-0 mt-1 bg-white/95 backdrop-blur-md border border-slate-100 rounded-2xl shadow-xl max-h-48 overflow-y-auto z-50 hidden">
+                        
+                        <!-- Daftar hasil pencarian akan muncul di sini secara dinamis -->
                     </div>
                 </div>
 
