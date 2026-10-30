@@ -157,10 +157,15 @@ async function fetchAndRenderActiveExams(student) {
         .lte('start_time', nowISO)
         .gte('end_time', nowISO);
 
-    if (error || !exams || exams.length === 0) {
-        container.innerHTML = `<div class="bg-slate-50/50 border border-dashed border-slate-200 rounded-[2rem] p-8 text-center fade-in"><i class="fas fa-calendar-times text-slate-200 text-3xl mb-3"></i><div class="text-xs font-bold text-slate-400 uppercase tracking-widest">Tidak Ada Jadwal Aktif</div></div>`;
-        return;
-    }
+    if (!exams || exams.length === 0 || validExams.length === 0) {
+            container.innerHTML = `
+                <div class="bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl p-6 text-center shadow-sm">
+                    <i class="fas fa-calendar-xmark text-purple-400 text-2xl mb-2"></i>
+                    <div class="text-xs font-bold text-slate-700 tracking-wide">Belum Ada Jadwal Ujian Aktif</div>
+                    <p class="text-[11px] text-slate-500 mt-1">Silakan tunggu hingga proktor membuka sesi ujian untuk kelas Anda.</p>
+                </div>`;
+            return;
+        }
 
     const studentClass = student.class_name.toUpperCase().trim();
     const studentDesc = (student.description || "").toUpperCase().trim();
