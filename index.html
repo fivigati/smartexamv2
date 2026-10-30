@@ -175,33 +175,37 @@
         </div>
     </div>
 
-    <!-- Section Identitas Siswa Setelah Berhasil Login (Tanpa Dobel Card) -->
+    <!-- Section Identitas Siswa Setelah Berhasil Login -->
     <div id="studentSection" class="hidden fixed inset-0 z-[100] flex flex-col items-center justify-center p-4 overflow-y-auto">
-        <div class="w-full max-w-lg p-6 sm:p-8 relative overflow-hidden my-auto transition-all">
+        <div class="w-full max-w-md glass-card rounded-[2.5rem] p-6 sm:p-8 relative overflow-hidden my-auto shadow-2xl transition-all">
             
-            <!-- Header Sapaan & Identitas Siswa (Bersih langsung di atas background) -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-300/60">
+            <!-- Aksen Cahaya Latar Belakang Kartu -->
+            <div class="absolute -top-20 -right-20 w-40 h-40 bg-pink-400/20 rounded-full blur-2xl pointer-events-none"></div>
+            <div class="absolute -bottom-20 -left-20 w-40 h-40 bg-indigo-400/20 rounded-full blur-2xl pointer-events-none"></div>
+
+            <!-- Header Sapaan & Identitas Siswa -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 pb-4 border-b border-white/50 relative z-10">
                 <div>
-                    <h2 class="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight">
+                    <h2 class="text-lg sm:text-xl font-extrabold text-slate-800 tracking-tight">
                         Halo, <span id="studentName" class="text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-pink-600">Siswa</span>
                     </h2>
                     <p class="text-xs text-slate-600 font-medium mt-1">
-                        Kelas: <span id="studentClass" class="font-bold text-slate-700">-</span> &bull; <span id="studentSchool" class="font-semibold text-purple-700">Sekolah</span> &bull; Sudah siap ujian hari ini?
+                        Kelas: <span id="studentClass" class="font-bold text-slate-700">-</span> &bull; <span id="studentSchool" class="font-semibold text-purple-700">Sekolah</span> &bull; Siap ujian?
                     </p>
                 </div>
             </div>
 
-            <!-- Kontainer Daftar Ujian Aktif -->
-            <div class="mb-6">
-                <h3 class="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest mb-3 px-1">Daftar Ujian Aktif</h3>
+            <!-- Kontainer Daftar Ujian Aktif / Kosong -->
+            <div class="mb-6 relative z-10">
+                <h3 class="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-3 px-1">Daftar Ujian Aktif</h3>
                 <div id="examContainer" class="space-y-3.5">
-                    <!-- Daftar ujian akan dimuat secara dinamis dari app.js -->
+                    <!-- Daftar ujian atau pesan kosong akan dimuat di sini -->
                 </div>
             </div>
 
-            <!-- Tombol Kembali ke Halaman Login -->
-            <div>
-                <button onclick="resetExamSession()" class="w-full py-3 bg-white/70 hover:bg-white text-slate-700 font-bold rounded-2xl text-xs transition-all border border-slate-200 shadow-sm flex items-center justify-center gap-2">
+            <!-- Tombol Kembali ke Login -->
+            <div class="relative z-10">
+                <button onclick="resetExamSession()" class="w-full py-3 bg-white/70 hover:bg-white text-slate-700 font-bold rounded-2xl text-xs transition-all border border-white shadow-sm flex items-center justify-center gap-2">
                     <i class="fas fa-arrow-right-from-bracket text-purple-600"></i> Kembali ke Login
                 </button>
             </div>
