@@ -179,10 +179,15 @@ async function fetchAndRenderActiveExams(student) {
         }
     });
 
-    if (validExams.length === 0) {
-        container.innerHTML = `<div class="bg-slate-50/50 border border-dashed border-slate-200 rounded-[2rem] p-8 text-center fade-in"><i class="fas fa-ban text-slate-200 text-3xl mb-3"></i><div class="text-xs font-bold text-slate-400 uppercase tracking-widest">Ujian Tidak Tersedia Untuk Kelas Anda</div></div>`;
-        return;
-    }
+    if (!exams || exams.length === 0 || validExams.length === 0) {
+            container.innerHTML = `
+                <div class="bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl p-6 text-center shadow-sm">
+                    <i class="fas fa-calendar-xmark text-purple-400 text-2xl mb-2"></i>
+                    <div class="text-xs font-bold text-slate-700 tracking-wide">Belum Ada Jadwal Ujian Aktif</div>
+                    <p class="text-[11px] text-slate-500 mt-1">Silakan tunggu hingga proktor membuka sesi ujian untuk kelas Anda.</p>
+                </div>`;
+            return;
+        }
 
     let htmlContent = '<div class="space-y-4 text-left">';
     validExams.forEach((exam) => {
