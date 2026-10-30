@@ -86,13 +86,12 @@ function showNotif(msg, type = 'info') {
    ===================================================== */
 async function handleLogin(e) {
     e.preventDefault();
-    const selectedNpsn = document.getElementById('selectedNpsnValue') ? document.getElementById('selectedNpsnValue').value.trim() : "";
+    const selectedNpsn = document.getElementById('selectedNpsnValue')?.value.trim() || "";
     const nisnInput = document.getElementById('studentId').value.trim();
     const btn = document.getElementById('submitBtn');
 
     if (!selectedNpsn) {
-        showNotif('Silakan pilih nama sekolah yang valid dari daftar pilihan!', 'error');
-        document.getElementById('schoolSearchInput').focus();
+        showNotif('Silakan pilih nama sekolah yang valid!', 'error');
         return;
     }
 
@@ -100,10 +99,10 @@ async function handleLogin(e) {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memverifikasi...';
     
     try {
-        // 1. Ambil data siswa berdasarkan NISN dan NPSN (Tanpa relasi join langsung agar aman)
+        // HANYA ambil kolom yang benar-benar dibutuhkan (Sangat ringan untuk RAM)
         const { data: student, error: studentError } = await db
             .from('students')
-            .select('*')
+            .select('nisn, school_npsn, full_name, class_name, grade_level, account_status')
             .eq('nisn', nisnInput)
             .eq('school_npsn', selectedNpsn)
             .maybeSingle();
@@ -118,64 +117,18 @@ async function handleLogin(e) {
             return;
         }
 
-        const schoolNpsn = student.school_npsn;
-
-        // Ambil nama sekolah secara terpisah untuk memastikan aman
-        const { data: schoolData } = await db
-            .from('schools')
-            .select('school_name')
-            .eq('npsn', schoolNpsn)
-            .maybeSingle();
-
-        // 2. Ambil konfigurasi sekolah / global dari tabel _config
-        const { data: configRows } = await db
-            .from('_config')
-            .select('key, value')
-            .in('school_npsn', [schoolNpsn, 'GLOBAL']);
-
-        let configMap = {
-            min_exit_minutes: 0,
-            max_violation: 'UNLIMITED',
-            auto_kick_enabled: false,
-            allow_multi_device: true,
-            heartbeat_enabled: true
-        };
-
-        if (configRows) {
-            configRows.forEach(cfg => {
-                if (cfg.school_npsn === schoolNpsn || !configMap[cfg.key]) {
-                    if (cfg.value === 'TRUE' || cfg.value === 'true') configMap[cfg.key] = true;
-                    else if (cfg.value === 'FALSE' || cfg.value === 'false') configMap[cfg.key] = false;
-                    else configMap[cfg.key] = cfg.value;
-                }
-            });
-        }
-
-        // 3. Simpan state sesi
+        // Simpan sesi lokal di browser (Mengurangi beban state server)
         sessionData.nisn = student.nisn;
         sessionData.student_name = student.full_name;
-        sessionData.npsn = schoolNpsn;
-        sessionData.minExitMinutes = parseInt(configMap.min_exit_minutes || 0);
-        sessionData.max_violation = configMap.max_violation;
-        sessionData.auto_kick_enabled = configMap.auto_kick_enabled;
-        sessionData.allow_multi_device = configMap.allow_multi_device;
-        sessionData.heartbeat_enabled = configMap.heartbeat_enabled;
+        sessionData.npsn = student.school_npsn;
 
-        const remember = document.getElementById('rememberId').checked;
-        if (remember) {
-            localStorage.setItem('smartExam_id', nisnInput);
-        } else {
-            localStorage.removeItem('smartExam_id');
-        }
-
-        // Tampilkan identitas ke UI
+        // Pindah UI
         document.getElementById('loginSection').classList.add('hidden');
         document.getElementById('studentSection').classList.remove('hidden');
         document.getElementById('studentName').innerText = student.full_name;
         document.getElementById('studentClass').innerText = student.class_name;
-        document.getElementById('studentSchool').innerText = schoolData?.school_name || "SMP Negeri 28 Malang";
 
-        // 4. Ambil daftar ujian aktif
+        // Tarik jadwal ujian aktif secara spesifik berdasarkan npsn & kelas siswa
         await fetchAndRenderActiveExams(student);
         showNotif('Identitas terverifikasi', 'success');
 
