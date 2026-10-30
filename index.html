@@ -13,24 +13,57 @@
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            /* Gradasi soft: Ungu, Pink, dan Biru */
-            background: linear-gradient(135deg, #818cf8 0%, #c084fc 45%, #f472b6 100%);
+            /* Ubah background body menjadi warna dasar yang sangat soft/neutral */
+            background: #0f172a; /* Warna gelap elegan atau bisa diganti #f1f5f9 */
             min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
         }
+
+        /* Buat gradasi ungu, pink, biru menjadi bentuk "blob" cahaya lembut di latar belakang */
+        .bg-glow-1 {
+            position: absolute;
+            top: -10%;
+            left: -10%;
+            width: 50vw;
+            height: 50vw;
+            background: linear-gradient(135deg, #818cf8, #c084fc);
+            filter: blur(100px);
+            opacity: 0.5; /* Tingkat kepekatan dikurangi agar hanya jadi bayangan cahaya */
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .bg-glow-2 {
+            position: absolute;
+            bottom: -10%;
+            right: -10%;
+            width: 50vw;
+            height: 50vw;
+            background: linear-gradient(135deg, #c084fc, #f472b6);
+            filter: blur(100px);
+            opacity: 0.5; /* Tingkat kepekatan dikurangi */
+            z-index: -1;
+            pointer-events: none;
+        }
+
         .glass-card {
-            background: rgba(255, 255, 255, 0.75);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.65); /* Transparansi kaca */
+            backdrop-blur: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
         }
-        /* Sembunyikan panah default datalist */
+
         input::-webkit-calendar-picker-indicator {
             display: none !important;
         }
     </style>
 </head>
 <body class="flex items-center justify-center p-4">
+    <!-- Efek Bayangan Gradasi Lembut di Background -->
+    <div class="bg-glow-1"></div>
+    <div class="bg-glow-2"></div>
 
     <!-- Notifikasi Floating -->
     <div id="notification" class="fixed top-8 left-1/2 -translate-x-1/2 flex items-center p-4 rounded-2xl bg-white/90 backdrop-blur-md shadow-2xl border border-white/50 max-w-sm w-[90%] transition-all duration-500 -translate-y-[250%] z-[300]">
