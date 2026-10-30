@@ -123,10 +123,11 @@ async function handleLogin(e) {
         sessionData.npsn = student.school_npsn;
 
         // Pindah UI
-        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('mainLoginCard').classList.add('hidden');
         document.getElementById('studentSection').classList.remove('hidden');
         document.getElementById('studentName').innerText = student.full_name;
         document.getElementById('studentClass').innerText = student.class_name;
+        document.getElementById('studentSchool').innerText = schoolData?.school_name || "Sekolah";
 
         // Tarik jadwal ujian aktif secara spesifik berdasarkan npsn & kelas siswa
         await fetchAndRenderActiveExams(student);
@@ -697,7 +698,7 @@ function resetExamSession() {
     document.getElementById('examIframe').src = "about:blank";
     document.getElementById('examWrapper').classList.replace('flex', 'hidden');
     document.getElementById('studentSection').classList.add('hidden');
-    document.getElementById('loginSection').classList.remove('hidden');
+    document.getElementById('mainLoginCard').classList.remove('hidden');
     document.getElementById('examTimer').innerText = "00:00:00";
 
     if (document.getElementById('exitTokenInput')) document.getElementById('exitTokenInput').value = "";
