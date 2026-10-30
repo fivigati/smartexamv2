@@ -122,17 +122,20 @@ async function handleLogin(e) {
         sessionData.student_name = student.full_name;
         sessionData.npsn = student.school_npsn;
 
-        // Pindah UI
+         // Pindah UI
         document.getElementById('mainLoginCard').classList.add('hidden');
         document.getElementById('studentSection').classList.remove('hidden');
         document.getElementById('studentName').innerText = student.full_name;
         document.getElementById('studentClass').innerText = student.class_name;
-        document.getElementById('studentSchool').innerText = schoolData?.school_name || "Sekolah";
+        
+        // Ambil teks nama sekolah dari input pencarian sekolah yang sedang aktif
+        const schoolInputText = document.getElementById('schoolSearchInput')?.value.split('(')[0].trim() || "Sekolah";
+        document.getElementById('studentSchool').innerText = schoolInputText;
 
         // Tarik jadwal ujian aktif secara spesifik berdasarkan npsn & kelas siswa
         await fetchAndRenderActiveExams(student);
         showNotif('Identitas terverifikasi', 'success');
-
+    
     } catch (err) {
         showNotif('Gagal terhubung ke database ujian', 'error');
         console.error(err);
