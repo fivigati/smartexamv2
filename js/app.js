@@ -90,7 +90,6 @@ async function handleLogin(e) {
     const nisnInput = document.getElementById('studentId').value.trim();
     const btn = document.getElementById('submitBtn');
 
-    // **VALIDASI KETAT:** Cek apakah NPSN benar-benar terpilih dari dropdown yang sah
     if (!selectedNpsn) {
         showNotif('Silakan pilih nama sekolah yang valid dari daftar pilihan!', 'error');
         document.getElementById('schoolSearchInput').focus();
@@ -101,13 +100,13 @@ async function handleLogin(e) {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memverifikasi...';
     
     try {
-        // 1. Ambil data siswa berdasarkan NISN dan NPSN sekolah yang dipilih
+        // 1. Ambil data siswa berdasarkan NISN dan NPSN (Tanpa relasi join langsung agar aman)
         const { data: student, error: studentError } = await db
             .from('students')
-            .select('*, schools(school_name)')
+            .select('*')
             .eq('nisn', nisnInput)
             .eq('school_npsn', selectedNpsn)
-            .single();
+            .maybeSingle();
 
         if (studentError || !student) {
             showNotif('NISN tidak ditemukan pada sekolah tersebut', 'error');
@@ -120,6 +119,13 @@ async function handleLogin(e) {
         }
 
         const schoolNpsn = student.school_npsn;
+
+        // Ambil nama sekolah secara terpisah untuk memastikan aman
+        const { data: schoolData } = await db
+            .from('schools')
+            .select('school_name')
+            .eq('npsn', schoolNpsn)
+            .maybeSingle();
 
         // 2. Ambil konfigurasi sekolah / global dari tabel _config
         const { data: configRows } = await db
@@ -167,7 +173,7 @@ async function handleLogin(e) {
         document.getElementById('studentSection').classList.remove('hidden');
         document.getElementById('studentName').innerText = student.full_name;
         document.getElementById('studentClass').innerText = student.class_name;
-        document.getElementById('studentSchool').innerText = student.schools?.school_name || "Sekolah";
+        document.getElementById('studentSchool').innerText = schoolData?.school_name || "SMP Negeri 28 Malang";
 
         // 4. Ambil daftar ujian aktif
         await fetchAndRenderActiveExams(student);
