@@ -150,6 +150,31 @@
 
     <!-- Section Identitas Siswa Setelah Berhasil Login -->
     <div id="studentSection" class="hidden fixed inset-0 bg-[#F4F7FF] z-[100] flex flex-col p-5 max-w-md mx-auto my-auto overflow-y-auto">
+        <div class="glass-card rounded-[2.5rem] p-6 relative overflow-hidden my-auto w-full shadow-2xl">
+            <!-- Header Kartu Siswa -->
+            <div class="flex items-center justify-between mb-4 pb-4 border-b border-slate-100">
+                <div>
+                    <span id="studentSchool" class="text-[10px] font-extrabold text-purple-600 uppercase tracking-widest block">Nama Sekolah</span>
+                    <h2 id="studentName" class="text-base font-extrabold text-slate-800 mt-0.5">Nama Siswa</h2>
+                </div>
+                <div class="bg-purple-100 text-purple-700 px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm">
+                    Kelas: <span id="studentClass">-</span>
+                </div>
+            </div>
+
+            <!-- Kontainer Daftar Ujian Aktif -->
+            <div class="mb-4">
+                <h3 class="text-xs font-extrabold text-slate-500 uppercase tracking-widest mb-3">Daftar Ujian Aktif</h3>
+                <div id="examContainer" class="space-y-3">
+                    <!-- Daftar ujian akan dimuat secara dinamis dari app.js -->
+                </div>
+            </div>
+
+            <!-- Tombol Keluar / Logout Sesi Siswa -->
+            <button onclick="resetExamSession()" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl text-xs transition-all">
+                <i class="fas fa-arrow-right-from-bracket mr-1.5"></i> Keluar / Selesai
+            </button>
+        </div>
     </div>
 
     <!-- Modal Form Pendaftaran (Hanya 1 Saja yang Aktif) -->
