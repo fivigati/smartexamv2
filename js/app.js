@@ -149,23 +149,19 @@ async function fetchAndRenderActiveExams(student) {
     const container = document.getElementById('examContainer');
     if (!container) return;
 
-    container.innerHTML = `<div class="p-4 text-center text-xs text-slate-500"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat jadwal ujian...</div>`;
+    container.innerHTML = `<div class="p-3 text-center text-xs text-slate-500"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat jadwal ujian...</div>`;
 
     try {
-        const nowISO = new Date().toISOString();
-
+        // Ambil ujian aktif berdasarkan NPSN sekolah siswa
         const { data: exams, error } = await db
             .from('exams')
             .select('*')
             .eq('school_npsn', student.school_npsn)
-            .eq('exam_status', 'ACTIVE')
-            .lte('start_time', nowISO)
-            .gte('end_time', nowISO);
+            .eq('exam_status', 'ACTIVE');
 
         if (error) throw error;
 
         const studentClass = (student.class_name || "").toUpperCase().trim();
-        const studentDesc = (student.description || "").toUpperCase().trim();
         const gradeLevel = (student.class_name || "").replace(/[^0-9]/g, '');
 
         let validExams = [];
@@ -173,44 +169,44 @@ async function fetchAndRenderActiveExams(student) {
         if (exams && exams.length > 0) {
             exams.forEach(exam => {
                 const targets = (exam.target_class || "").toUpperCase().split(',').map(t => t.trim());
-                const isCategoryMatch = studentDesc !== "" && targets.includes(studentDesc);
+                const isAll = targets.includes('ALL');
+                const isGradeMatch = targets.includes(gradeLevel);
                 const isClassMatch = targets.includes(studentClass);
-                const isLevelMatch = targets.includes('ALL_' + gradeLevel) || targets.includes('ALL');
 
-                if (isCategoryMatch || isClassMatch || isLevelMatch) {
+                if (isAll || isGradeMatch || isClassMatch) {
                     validExams.push(exam);
                 }
             });
         }
 
-        // Jika tidak ada ujian yang aktif atau cocok untuk kelas siswa
+        // Jika tidak ada jadwal ujian yang cocok
         if (validExams.length === 0) {
             container.innerHTML = `
-                <div class="bg-white/60 backdrop-blur-md border border-white/80 rounded-2xl p-6 text-center shadow-sm">
-                    <i class="fas fa-calendar-xmark text-purple-500 text-2xl mb-2"></i>
-                    <div class="text-xs font-bold text-slate-700 tracking-wide">Belum Ada Jadwal Ujian Aktif</div>
-                    <p class="text-[11px] text-slate-500 mt-1">Silakan tunggu hingga proktor membuka sesi ujian untuk kelas Anda.</p>
+                <div class="bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl p-4 text-center">
+                    <i class="fas fa-calendar-xmark text-purple-500 text-xl mb-1.5"></i>
+                    <div class="text-xs font-bold text-slate-700">Belum Ada Jadwal Ujian Aktif</div>
+                    <p class="text-[10px] text-slate-500 mt-0.5">Silakan tunggu hingga proktor membuka sesi ujian.</p>
                 </div>`;
             return;
         }
 
-        let htmlContent = '<div class="space-y-4 text-left">';
+        let htmlContent = '<div class="space-y-3 text-left">';
         validExams.forEach((exam) => {
             const startTimeStr = new Date(exam.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const endTimeStr = new Date(exam.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
             htmlContent += `
-                <div class="bg-white/70 backdrop-blur-xl rounded-[1.5rem] shadow-sm p-4 border border-white/90 hover:shadow-md transition-all">
+                <div class="bg-white/60 backdrop-blur-md rounded-2xl p-3.5 border border-white/80 shadow-sm">
                     <div class="flex items-center justify-between mb-2">
-                        <span class="inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-700 px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border border-emerald-500/20">
+                        <span class="inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-700 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border border-emerald-500/20">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Tersedia
                         </span>
                         <span class="text-[10px] font-bold text-slate-500"><i class="far fa-clock mr-1 text-purple-500"></i> ${startTimeStr} - ${endTimeStr}</span>
                     </div>
                     <h4 class="text-xs font-extrabold text-slate-800 mb-2">${exam.subject} (${exam.duration_minutes} Menit)</h4>
                     <div class="space-y-2">
-                        <input type="text" id="tokenInput_${exam.exam_id}" placeholder="MASUKKAN TOKEN" class="block w-full px-3 py-2.5 text-center text-xs tracking-[0.2em] text-purple-700 rounded-xl font-black uppercase bg-white/90 border border-white focus:bg-white focus:border-purple-500 outline-none transition-all shadow-inner">
-                        <button onclick="selectAndStartExam(${exam.exam_id}, '${encodeURIComponent(exam.subject)}', '${exam.entry_token}', '${exam.exam_link}', ${exam.duration_minutes}, '${exam.exit_token || ""}')" class="w-full py-2.5 bg-gradient-to-r from-violet-600 to-pink-500 hover:opacity-95 text-white font-bold rounded-xl text-xs shadow-md shadow-purple-500/20 transition-all">
+                        <input type="text" id="tokenInput_${exam.exam_id}" placeholder="MASUKKAN TOKEN" class="block w-full px-3 py-2 text-center text-xs tracking-[0.2em] text-purple-700 rounded-xl font-black uppercase bg-white/80 border border-white focus:bg-white focus:border-purple-500 outline-none transition-all">
+                        <button onclick="selectAndStartExam(${exam.exam_id}, '${encodeURIComponent(exam.subject)}', '${exam.entry_token}', '${exam.exam_link}', ${exam.duration_minutes}, '${exam.exit_token || ""}')" class="w-full py-2 bg-gradient-to-r from-violet-600 to-pink-500 hover:opacity-95 text-white font-bold rounded-xl text-xs shadow-md shadow-purple-500/20 transition-all">
                             Mulai Ujian Ini
                         </button>
                     </div>
@@ -223,14 +219,13 @@ async function fetchAndRenderActiveExams(student) {
     } catch (err) {
         console.error("Gagal memuat jadwal ujian:", err);
         container.innerHTML = `
-            <div class="bg-white/60 backdrop-blur-md border border-white/80 rounded-2xl p-6 text-center shadow-sm">
-                <i class="fas fa-triangle-exclamation text-rose-500 text-2xl mb-2"></i>
-                <div class="text-xs font-bold text-slate-700 tracking-wide">Gagal Memuat Jadwal Ujian</div>
-                <p class="text-[11px] text-slate-500 mt-1">Periksa koneksi internet Anda.</p>
+            <div class="bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl p-4 text-center">
+                <i class="fas fa-triangle-exclamation text-rose-500 text-xl mb-1.5"></i>
+                <div class="text-xs font-bold text-slate-700">Gagal Memuat Jadwal Ujian</div>
+                <p class="text-[10px] text-slate-500 mt-0.5">Periksa koneksi database Anda.</p>
             </div>`;
     }
 }
-
 /* =====================================================
    EXAM RUNTIME CONTROLLER
    ===================================================== */
