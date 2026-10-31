@@ -1054,3 +1054,20 @@ function logoutToLogin() {
 
     showNotif('Kembali ke menu login', 'info');
 }
+/* =====================================================
+   DETEKSI OVERLAY & KELUAR APLIKASI (AMAN SAAT MENGETIK)
+   ===================================================== */
+window.addEventListener("blur", () => {
+    // Beri jeda 300ms untuk memastikan ini bukan sekadar fokus ketik / iframe
+    setTimeout(() => {
+        if (isExamActive && !window.isForceClosing && !document.hasFocus()) {
+            triggerViolation("MENGGUNAKAN OVERLAY / KELUAR APLIKASI");
+        }
+    }, 300);
+});
+
+window.addEventListener("focus", () => {
+    if (isExamActive) {
+        stopAlarm();
+    }
+});
