@@ -733,25 +733,33 @@ function resetExamSession() {
 /* =====================================================
    FITUR TAB & SCHOOL AUTOCOMPLETE (MULTI-SCHOOL)
    ===================================================== */
+/* =====================================================
+   FITUR TAB & SCHOOL AUTOCOMPLETE (MULTI-SCHOOL)
+   ===================================================== */
 function switchLoginRole(role) {
     const studentBtn = document.getElementById('tabStudentBtn');
     const teacherBtn = document.getElementById('tabTeacherBtn');
-    const studentSec = document.getElementById('studentLoginSection');
+    const studentSec = document.getElementById('loginSection');
     const teacherSec = document.getElementById('teacherLoginSection');
 
     if (role === 'student') {
-        studentBtn.className = "py-2.5 text-xs font-bold rounded-xl transition-all bg-white text-indigo-600 shadow-sm";
-        teacherBtn.className = "py-2.5 text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800";
+        // Aktifkan gaya tombol tab Siswa
+        studentBtn.className = "py-2.5 text-xs font-bold rounded-xl transition-all bg-white text-purple-600 shadow-sm";
+        teacherBtn.className = "py-2.5 text-xs font-bold rounded-xl transition-all text-slate-600 hover:text-slate-900";
+        
+        // Tampilkan form siswa, sembunyikan form guru
         studentSec.classList.remove('hidden');
         teacherSec.classList.add('hidden');
     } else {
-        teacherBtn.className = "py-2.5 text-xs font-bold rounded-xl transition-all bg-white text-indigo-600 shadow-sm";
-        studentBtn.className = "py-2.5 text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800";
+        // Aktifkan gaya tombol tab Guru/Admin
+        teacherBtn.className = "py-2.5 text-xs font-bold rounded-xl transition-all bg-white text-purple-600 shadow-sm";
+        studentBtn.className = "py-2.5 text-xs font-bold rounded-xl transition-all text-slate-600 hover:text-slate-900";
+        
+        // Tampilkan form guru, sembunyikan form siswa
         teacherSec.classList.remove('hidden');
         studentSec.classList.add('hidden');
     }
 }
-
 function handleTeacherLoginPlaceholder() {
     showNotif('Modul Dashboard Guru sedang disiapkan!', 'info');
 }
