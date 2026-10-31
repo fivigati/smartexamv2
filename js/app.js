@@ -705,6 +705,9 @@ async function konfirmasiKeluar(e) {
     }
 }
 
+/* =====================================================
+   PERBAIKAN FUNGSI RESET SESSION SETELAH KELUAR UJIAN
+   ===================================================== */
 function resetExamSession() {
     isExamActive = false;
     window.isForceClosing = false;
@@ -715,24 +718,51 @@ function resetExamSession() {
     if (sessionData.wakeLock) { sessionData.wakeLock.release().catch(() => {}); }
     if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); }
 
+    // Sembunyikan layar ujian & dashboard siswa, tampilkan login utama
     document.getElementById('examIframe').src = "about:blank";
     document.getElementById('examWrapper').classList.replace('flex', 'hidden');
     document.getElementById('studentSection').classList.add('hidden');
     document.getElementById('mainLoginCard').classList.remove('hidden');
     document.getElementById('examTimer').innerText = "00:00:00";
 
+    // Bersihkan input token keluar
     if (document.getElementById('exitTokenInput')) document.getElementById('exitTokenInput').value = "";
 
-    currentZoom = 100; correctToken = ""; examLink = ""; sessionData.exam_id = ""; sessionData.exit_token = "";
+    currentZoom = 100; 
+    correctToken = ""; 
+    examLink = ""; 
+    sessionData.exam_id = ""; 
+    sessionData.exit_token = "";
     tutupModalExit();
 
-    const remember = document.getElementById('rememberId').checked;
-    if (!remember) { localStorage.removeItem('smartExam_id'); document.getElementById('studentId').value = ""; }
-}
+    // Cek apakah fitur "Ingat ID saya" aktif
+    const remember = document.getElementById('rememberId')?.checked;
 
-/* =====================================================
-   FITUR TAB & SCHOOL AUTOCOMPLETE (MULTI-SCHOOL)
-   ===================================================== */
+    if (!remember) { 
+        // Jika tidak dicentang, bersihkan seluruh localStorage dan kosongkan SEMUA input (Sekolah & NISN)
+        localStorage.removeItem('smartExam_id'); 
+        localStorage.removeItem('smartExam_npsn');
+        localStorage.removeItem('smartExam_schoolName');
+
+        const studentIdElem = document.getElementById('studentId');
+        if (studentIdElem) studentIdElem.value = ""; 
+
+        const schoolSearchInput = document.getElementById('schoolSearchInput');
+        if (schoolSearchInput) schoolSearchInput.value = "";
+
+        const selectedNpsnValue = document.getElementById('selectedNpsnValue');
+        if (selectedNpsnValue) selectedNpsnValue.value = "";
+    } else {
+        // Jika dicentang, pertahankan data di form
+        const nisnVal = document.getElementById('studentId')?.value;
+        const npsnVal = document.getElementById('selectedNpsnValue')?.value;
+        const schoolVal = document.getElementById('schoolSearchInput')?.value;
+
+        if (nisnVal) localStorage.setItem('smartExam_id', nisnVal);
+        if (npsnVal) localStorage.setItem('smartExam_npsn', npsnVal);
+        if (schoolVal) localStorage.setItem('smartExam_schoolName', schoolVal);
+    }
+}
 /* =====================================================
    FITUR TAB & SCHOOL AUTOCOMPLETE (MULTI-SCHOOL)
    ===================================================== */
