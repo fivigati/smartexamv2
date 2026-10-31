@@ -985,25 +985,34 @@ function logoutToLogin() {
         mainLoginCard.classList.remove('hidden');
     }
 
-    // Kosongkan kontainer daftar ujian agar tidak menumpuk saat login lagi
+    // Kosongkan kontainer daftar ujian agar tidak menumpuk
     const examContainer = document.getElementById('examContainer');
     if (examContainer) {
         examContainer.innerHTML = '';
     }
 
-    // Reset input form login jika opsi 'Ingat ID saya' tidak dicentang
+    // Cek status checkbox 'Ingat ID saya'
     const remember = document.getElementById('rememberId')?.checked;
+
     if (!remember) { 
+        // Jika tidak dicentang, bersihkan penyimpanan lokal dan kosongkan SEMUA input (Sekolah & NISN)
         localStorage.removeItem('smartExam_id'); 
+        
         const studentIdElem = document.getElementById('studentId');
         if (studentIdElem) studentIdElem.value = ""; 
-    }
 
-    // Opsional: Kosongkan juga input pencarian sekolah jika ingin benar-benar bersih total
-    // const schoolSearchInput = document.getElementById('schoolSearchInput');
-    // if (schoolSearchInput) schoolSearchInput.value = "";
-    // const selectedNpsnValue = document.getElementById('selectedNpsnValue');
-    // if (selectedNpsnValue) selectedNpsnValue.value = "";
+        const schoolSearchInput = document.getElementById('schoolSearchInput');
+        if (schoolSearchInput) schoolSearchInput.value = "";
+
+        const selectedNpsnValue = document.getElementById('selectedNpsnValue');
+        if (selectedNpsnValue) selectedNpsnValue.value = "";
+    } else {
+        // Jika dicentang, NISN tetap diingat, tapi kita pastikan ID-nya tersimpan ke localStorage
+        const nisnVal = document.getElementById('studentId')?.value;
+        if (nisnVal) {
+            localStorage.setItem('smartExam_id', nisnVal);
+        }
+    }
 
     showNotif('Kembali ke menu login', 'info');
 }
