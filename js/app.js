@@ -1042,3 +1042,60 @@ async function handleModalRegistration(e) {
         btn.innerHTML = 'Simpan & Daftarkan Sekolah';
     }
 }
+/* =====================================================
+   KEMBALI KE HALAMAN LOGIN UTAMA (DARI DASHBOARD SISWA)
+   ===================================================== */
+function logoutToLogin() {
+    // Reset variabel sesi penting
+    sessionData.npsn = "";
+    sessionData.nisn = "";
+    sessionData.student_name = "";
+    sessionData.exam_id = "";
+    sessionData.exit_token = "";
+
+    // Sembunyikan section dashboard siswa
+    const studentSection = document.getElementById('studentSection');
+    if (studentSection) {
+        studentSection.classList.add('hidden');
+    }
+
+    // Tampilkan kembali card login utama
+    const mainLoginCard = document.getElementById('mainLoginCard');
+    if (mainLoginCard) {
+        mainLoginCard.classList.remove('hidden');
+    }
+
+    // Kosongkan kontainer daftar ujian agar tidak menumpuk
+    const examContainer = document.getElementById('examContainer');
+    if (examContainer) {
+        examContainer.innerHTML = '';
+    }
+
+    // Cek status checkbox 'Ingat ID saya'
+    const remember = document.getElementById('rememberId')?.checked;
+
+    if (!remember) { 
+        localStorage.removeItem('smartExam_id'); 
+        localStorage.removeItem('smartExam_npsn');
+        localStorage.removeItem('smartExam_schoolName');
+
+        const studentIdElem = document.getElementById('studentId');
+        if (studentIdElem) studentIdElem.value = ""; 
+
+        const schoolSearchInput = document.getElementById('schoolSearchInput');
+        if (schoolSearchInput) schoolSearchInput.value = "";
+
+        const selectedNpsnValue = document.getElementById('selectedNpsnValue');
+        if (selectedNpsnValue) selectedNpsnValue.value = "";
+    } else {
+        const nisnVal = document.getElementById('studentId')?.value;
+        const npsnVal = document.getElementById('selectedNpsnValue')?.value;
+        const schoolVal = document.getElementById('schoolSearchInput')?.value;
+
+        if (nisnVal) localStorage.setItem('smartExam_id', nisnVal);
+        if (npsnVal) localStorage.setItem('smartExam_npsn', npsnVal);
+        if (schoolVal) localStorage.setItem('smartExam_schoolName', schoolVal);
+    }
+
+    showNotif('Kembali ke menu login', 'info');
+}
