@@ -13,14 +13,12 @@
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            /* Ubah background body menjadi putih keabuan yang sangat soft dan bersih */
             background: #f1f5f9;
             min-height: 100vh;
             position: relative;
             overflow-x: hidden;
         }
 
-        /* Bias cahaya gradasi yang lebih lembut dan menyebar luas */
         .bg-glow-1 {
             position: fixed;
             top: -20%;
@@ -76,7 +74,7 @@
     <!-- Container Utama Login Card -->
     <div id="mainLoginCard" class="w-full max-w-md glass-card rounded-[2.5rem] p-8 relative overflow-hidden my-auto fade-in">
         
-        <!-- Background Glow Accent (Pink & Purple) -->
+        <!-- Background Glow Accent -->
         <div class="absolute -top-24 -right-24 w-48 h-48 bg-pink-400/20 rounded-full blur-3xl pointer-events-none"></div>
         <div class="absolute -bottom-24 -left-24 w-48 h-48 bg-indigo-400/20 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -110,13 +108,10 @@
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                             <i class="fas fa-school text-purple-400"></i>
                         </div>
-                        
                         <input type="text" id="schoolSearchInput" placeholder="Ketik nama sekolah Anda..." autocomplete="off" required oninput="filterSchools(this.value)"
                             class="block w-full pl-11 pr-4 py-3 bg-white/70 border border-white/80 rounded-2xl text-slate-700 text-xs font-semibold focus:bg-white focus:border-purple-400 focus:ring-4 focus:ring-purple-400/10 outline-none transition-all shadow-sm">
-                        
                         <input type="hidden" id="selectedNpsnValue" value="">
                     </div>
-                    
                     <div id="schoolDropdown" class="absolute left-0 right-0 mt-1 bg-white/95 backdrop-blur-md border border-slate-100 rounded-2xl shadow-xl max-h-48 overflow-y-auto z-50 hidden"></div>
                 </div>
 
@@ -152,7 +147,7 @@
                     <i class="fas fa-tools"></i>
                 </div>
                 <h3 class="text-xs font-bold text-slate-800 mb-1">Portal Guru & Proktor</h3>
-                <p class="text-[11px] text-slate-500 leading-relaxed">Kelola jadwal ujian, pantau aktivitas siswa secara langsung.</p>
+                <p class="text-[11px] text-slate-500 leading-relaxed">Kelola jadwal ujian dan pantau aktivitas siswa secara langsung.</p>
             </div>
 
             <form onsubmit="handleTeacherLogin(event)" class="space-y-3">
@@ -187,7 +182,6 @@
                 <i class="fas fa-school-circle-check mr-2"></i> Daftarkan Sekolah Baru (Free Plan)
             </button>
         </div>
-<!-- ================= AKHIR SECTION LOGIN GURU ================= -->
 
         <!-- Footer Keamanan Info -->
         <div class="mt-6 pt-4 border-t border-white/40 flex gap-3 items-center">
@@ -204,11 +198,9 @@
     <div id="studentSection" class="hidden fixed inset-0 z-[100] flex flex-col items-center justify-center p-4 overflow-y-auto">
         <div class="w-full max-w-md glass-card rounded-[2.5rem] p-6 sm:p-8 relative overflow-hidden my-auto shadow-2xl transition-all">
             
-            <!-- Aksen Cahaya Latar Belakang Kartu -->
             <div class="absolute -top-20 -right-20 w-40 h-40 bg-pink-400/20 rounded-full blur-2xl pointer-events-none"></div>
             <div class="absolute -bottom-20 -left-20 w-40 h-40 bg-indigo-400/20 rounded-full blur-2xl pointer-events-none"></div>
 
-            <!-- Header Sapaan & Identitas Siswa -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 pb-4 border-b border-white/50 relative z-10">
                 <div>
                     <h2 class="text-lg sm:text-xl font-extrabold text-slate-800 tracking-tight">
@@ -220,15 +212,13 @@
                 </div>
             </div>
 
-            <!-- Kontainer Daftar Ujian Aktif / Kosong -->
             <div class="mb-6 relative z-10">
                 <h3 class="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-3 px-1">Daftar Ujian Aktif</h3>
                 <div id="examContainer" class="space-y-3.5">
-                    <!-- Daftar ujian atau pesan kosong akan dimuat di sini -->
+                    <!-- Daftar ujian aktif akan dimuat di sini oleh app.js -->
                 </div>
             </div>
 
-            <!-- Tombol Kembali ke Login -->
             <div class="relative z-10">
                 <button onclick="logoutToLogin()" class="w-full py-3 bg-white/70 hover:bg-white text-slate-700 font-bold rounded-2xl text-xs transition-all border border-white shadow-sm flex items-center justify-center gap-2">
                     <i class="fas fa-arrow-right-from-bracket text-purple-600"></i> Kembali ke Login
@@ -236,15 +226,154 @@
             </div>
         </div>
     </div>
-    <!-- Modal Form Pendaftaran (Hanya 1 Saja yang Aktif) -->
-    <div id="registerModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
-        <div class="w-full max-w-md glass-card rounded-[2.5rem] p-8 relative overflow-hidden bg-white/95 shadow-2xl animate-fade-in">
+
+    <!-- =====================================================
+       WRAPPER UTAMA LAYAR UJIAN (FULLSCREEN & IFRAME SOAL)
+       ===================================================== -->
+    <div id="examWrapper" class="fixed inset-0 bg-[#f1f5f9] z-[200] hidden flex-col">
+        <div class="bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-3 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-10 h-10 rounded-2xl bg-purple-50 flex items-center justify-center shrink-0 border border-purple-100">
+                        <i class="fas fa-graduation-cap text-purple-600"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="text-sm font-extrabold text-slate-800 leading-tight whitespace-nowrap">Smart Exam V2</div>
+                        <div class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">Secure Browser Active</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 ml-auto">
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="refreshExam()" title="Muat Ulang" class="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all text-slate-700 flex items-center justify-center">
+                            <i class="fas fa-rotate-right text-sm"></i>
+                        </button>
+                        <button onclick="zoomExam('in')" title="Perbesar" class="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all text-slate-700 flex items-center justify-center">
+                            <i class="fas fa-plus text-sm"></i>
+                        </button>
+                        <button onclick="zoomExam('out')" title="Perkecil" class="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all text-slate-700 flex items-center justify-center">
+                            <i class="fas fa-minus text-sm"></i>
+                        </button>
+                        <button onclick="closeExam()" title="Keluar / Selesai" class="w-10 h-10 rounded-2xl bg-rose-500 hover:bg-rose-600 transition-all text-white shadow-sm flex items-center justify-center">
+                            <i class="fas fa-power-off text-sm"></i>
+                        </button>
+                    </div>
+                    <div id="examTimer" class="bg-rose-50 text-rose-600 font-bold text-sm px-4 py-2 rounded-full whitespace-nowrap text-center min-w-[105px] font-mono shrink-0 border border-rose-100">00:00:00</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 p-2 bg-slate-200/60 min-h-0 flex items-center justify-center overflow-hidden">
+            <div class="w-full h-full bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-inner flex items-center justify-center">
+                <iframe id="examIframe" src="" class="border-none transition-transform duration-200 origin-center" style="width:100%; height:100%;"></iframe>
+            </div>
+        </div>
+
+        <div class="text-center text-[10px] font-semibold text-slate-400 py-2.5 bg-white/60 border-t border-slate-200">© 2026 Smart Exam V2. All rights reserved</div>
+    </div>
+
+    <!-- =====================================================
+       LOCKSCREEN / PERINGATAN KELUAR FULLSCREEN
+       ===================================================== -->
+    <div id="lockScreen" class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[20000] flex-col items-center justify-center text-white text-center p-6">
+        <div class="w-20 h-20 bg-rose-500/20 text-rose-500 rounded-3xl flex items-center justify-center text-3xl mb-4 border border-rose-500/30 animate-bounce">
+            <i class="fas fa-lock"></i>
+        </div>
+        <h2 class="text-2xl font-extrabold mb-2 text-white">Layar Ujian Terkunci</h2>
+        <p class="text-xs text-slate-400 max-w-sm mb-8 leading-relaxed">Sistem mendeteksi Anda keluar dari mode layar penuh atau memindahkan fokus browser. Tindakan ini dicatat sebagai pelanggaran.</p>
+        <button onclick="kembaliKeFullscreen()" class="bg-gradient-to-r from-violet-600 to-pink-500 hover:opacity-95 text-white px-8 py-3.5 rounded-2xl font-bold text-xs shadow-xl shadow-purple-500/30 transition-all active:scale-95">
+            <i class="fas fa-expand mr-2"></i> LANJUTKAN UJIAN
+        </button>
+    </div>
+
+    <!-- =====================================================
+       MODAL KELUAR / SUBMIT UJIAN
+       ===================================================== -->
+    <div id="modalExit" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[30000] hidden flex items-center justify-center p-4">
+        <div class="bg-white/95 backdrop-blur-md w-full max-w-[320px] rounded-[2rem] p-6 shadow-2xl text-center border border-white">
             
-            <!-- Tombol Close Modal -->
+            <div id="stepConfirmation" class="space-y-4">
+                <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mx-auto text-xl border border-purple-100">
+                    <i class="fas fa-door-open"></i>
+                </div>
+                <h2 class="text-base font-black text-slate-800">Akhiri Sesi Ujian?</h2>
+                <p class="text-slate-500 text-[11px] leading-relaxed">Pastikan lembar jawaban Anda sudah di-<span class="font-bold text-purple-600">SUBMIT</span> dengan benar sebelum keluar.</p>
+                <div class="space-y-2 pt-1">
+                    <button id="btnCloseExam" onclick="goToTokenStep(event)" disabled class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl text-xs transition-all opacity-50 cursor-not-allowed shadow-md">SAYA SUDAH SUBMIT</button>
+                    <button onclick="tutupModalExit()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-xl text-xs transition-colors">KEMBALI KE UJIAN</button>
+                </div>
+            </div>
+
+            <div id="stepToken" class="hidden space-y-4">
+                <div class="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto text-xl border border-rose-100">
+                    <i class="fas fa-key"></i>
+                </div>
+                <h2 class="text-base font-black text-slate-800 uppercase tracking-tight">Token Keluar Ruangan</h2>
+                <p class="text-slate-500 text-[11px]">Masukkan token exit dari proktor.</p>
+                <div>
+                    <input type="text" id="exitTokenInput" placeholder="KODE TOKEN" autocomplete="off" class="block w-full px-4 py-3 text-center text-lg tracking-[0.2em] text-rose-600 rounded-xl font-black uppercase bg-slate-50 border border-slate-200 focus:bg-white focus:border-rose-500 outline-none transition-all">
+                    <p id="exitErrorMsg" class="text-rose-500 text-[10px] font-bold mt-2 hidden uppercase">Token Keluar Salah!</p>
+                </div>
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <button onclick="tutupModalExit()" class="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl text-xs transition-colors">BATAL</button>
+                    <button id="btnFinalExit" onclick="konfirmasiKeluar(event)" class="py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl text-xs shadow-md transition-all">KELUAR</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- =====================================================
+       MODAL WAKTU HABIS & KEAMANAN SISTEM
+       ===================================================== -->
+    <div id="timeUpModal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[9999] items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 text-center shadow-2xl">
+            <div class="w-20 h-20 mx-auto rounded-full bg-rose-100 flex items-center justify-center mb-4"><i class="fas fa-clock text-3xl text-rose-500"></i></div>
+            <h2 class="text-xl font-extrabold text-slate-800 mb-2">Waktu Ujian Habis</h2>
+            <p class="text-sm text-slate-500 mb-5 leading-relaxed">Sistem akan menutup ujian secara otomatis.</p>
+            <div class="bg-slate-100 rounded-2xl py-3"><span class="text-3xl font-black text-purple-600" id="timeUpCountdown">5</span></div>
+        </div>
+    </div>
+
+    <div id="securityModal" class="hidden fixed inset-0 z-[99999] bg-slate-950/90 backdrop-blur-md items-center justify-center p-5">
+        <div class="w-full max-w-sm bg-white rounded-[2rem] shadow-2xl overflow-hidden">
+            <div id="securityModalHeader" class="px-6 pt-8 pb-10 text-center bg-gradient-to-br from-rose-500 to-red-600">
+                <div id="securityModalIconWrapper" class="w-24 h-24 mx-auto rounded-full bg-white/15 border border-white/20 flex items-center justify-center backdrop-blur-sm shadow-lg">
+                    <i id="securityModalIcon" class="fas fa-shield-halved text-white text-4xl"></i>
+                </div>
+                <h2 id="securityModalTitle" class="text-white text-2xl font-extrabold mt-5">Keamanan Sistem</h2>
+                <p id="securityModalSubtitle" class="text-rose-100 text-sm mt-2 leading-relaxed px-3">Sistem mendeteksi aktivitas tidak valid.</p>
+            </div>
+            <div class="px-6 py-6 text-center">
+                <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-5">
+                    <p id="securityModalMessage" class="text-sm text-slate-600 leading-relaxed">Sesi ujian akan ditutup otomatis demi menjaga keamanan sistem.</p>
+                </div>
+                <div class="flex items-center justify-center gap-2 text-sm text-slate-400">
+                    <div class="w-2 h-2 rounded-full bg-rose-400 animate-bounce"></div>
+                    <div class="w-2 h-2 rounded-full bg-rose-400 animate-bounce [animation-delay:0.15s]"></div>
+                    <div class="w-2 h-2 rounded-full bg-rose-400 animate-bounce [animation-delay:0.3s]"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Banner Offline -->
+    <div id="offlineBanner" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-[999999]">
+        <div class="bg-amber-500 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"><i class="fas fa-wifi text-lg"></i></div>
+            <div>
+                <div class="font-extrabold text-sm">Koneksi Terputus</div>
+                <div class="text-[11px] text-amber-100 leading-tight">Sistem mencoba menyambungkan kembali...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Form Pendaftaran Sekolah Baru -->
+    <div id="registerModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
+        <div class="w-full max-w-md glass-card rounded-[2.5rem] p-8 relative overflow-hidden bg-white/95 shadow-2xl">
             <button onclick="toggleRegisterModal(false)" class="absolute top-6 right-6 text-slate-400 hover:text-slate-700">
                 <i class="fas fa-xmark text-lg"></i>
             </button>
-
             <div class="text-center mb-6">
                 <div class="w-14 h-14 bg-gradient-to-tr from-violet-600 to-pink-500 rounded-2xl mx-auto flex items-center justify-center text-white shadow-lg mb-3">
                     <i class="fas fa-school-circle-check text-xl"></i>
@@ -252,8 +381,6 @@
                 <h2 class="text-xl font-extrabold text-slate-800">Daftar Sekolah Baru</h2>
                 <p class="text-slate-500 text-xs mt-1">Aktivasi instan untuk Smart Exam V2</p>
             </div>
-
-            <!-- Form Input Pendaftaran -->
             <form onsubmit="handleModalRegistration(event)" class="space-y-3">
                 <div>
                     <label class="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1 ml-1">NPSN Sekolah</label>
@@ -271,7 +398,7 @@
                         class="block w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-xs font-semibold focus:bg-white focus:border-purple-400 outline-none">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1 ml-1">No. WhatsApp Proktor (Hanya Angka)</label>
+                    <label class="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1 ml-1">No. WhatsApp Proktor</label>
                     <input type="text" id="mRegWhatsapp" placeholder="Contoh: 081234567890" required oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                         class="block w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-xs font-semibold focus:bg-white focus:border-purple-400 outline-none">
                 </div>
@@ -280,7 +407,6 @@
                     <input type="password" id="mRegPassword" placeholder="Minimal 6 karakter" required minlength="6"
                         class="block w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-xs font-semibold focus:bg-white focus:border-purple-400 outline-none">
                 </div>
-
                 <button type="submit" id="mSubmitBtn" class="w-full py-3 bg-gradient-to-r from-violet-600 to-pink-500 text-white font-bold rounded-xl text-xs shadow-md mt-2">
                     Simpan & Daftarkan Sekolah
                 </button>
@@ -288,6 +414,12 @@
         </div>
     </div>
 
+    <!-- Audio Alarm Pelanggaran -->
+    <audio id="alarmAudio" loop preload="auto">
+        <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" type="audio/ogg">
+    </audio>
+
+    <!-- Supabase SDK & App Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/config.js"></script>
     <script src="js/app.js"></script>
