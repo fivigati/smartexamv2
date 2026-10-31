@@ -962,3 +962,48 @@ async function handleModalRegistration(e) {
         btn.innerHTML = 'Simpan & Daftarkan Sekolah';
     }
 }
+/* =====================================================
+   KEMBALI KE HALAMAN LOGIN UTAMA (DARI DASHBOARD SISWA)
+   ===================================================== */
+function logoutToLogin() {
+    // Reset variabel sesi penting
+    sessionData.npsn = "";
+    sessionData.nisn = "";
+    sessionData.student_name = "";
+    sessionData.exam_id = "";
+    sessionData.exit_token = "";
+
+    // Sembunyikan section dashboard siswa
+    const studentSection = document.getElementById('studentSection');
+    if (studentSection) {
+        studentSection.classList.add('hidden');
+    }
+
+    // Tampilkan kembali card login utama
+    const mainLoginCard = document.getElementById('mainLoginCard');
+    if (mainLoginCard) {
+        mainLoginCard.classList.remove('hidden');
+    }
+
+    // Kosongkan kontainer daftar ujian agar tidak menumpuk saat login lagi
+    const examContainer = document.getElementById('examContainer');
+    if (examContainer) {
+        examContainer.innerHTML = '';
+    }
+
+    // Reset input form login jika opsi 'Ingat ID saya' tidak dicentang
+    const remember = document.getElementById('rememberId')?.checked;
+    if (!remember) { 
+        localStorage.removeItem('smartExam_id'); 
+        const studentIdElem = document.getElementById('studentId');
+        if (studentIdElem) studentIdElem.value = ""; 
+    }
+
+    // Opsional: Kosongkan juga input pencarian sekolah jika ingin benar-benar bersih total
+    // const schoolSearchInput = document.getElementById('schoolSearchInput');
+    // if (schoolSearchInput) schoolSearchInput.value = "";
+    // const selectedNpsnValue = document.getElementById('selectedNpsnValue');
+    // if (selectedNpsnValue) selectedNpsnValue.value = "";
+
+    showNotif('Kembali ke menu login', 'info');
+}
