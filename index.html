@@ -56,6 +56,13 @@
         input::-webkit-calendar-picker-indicator {
             display: none !important;
         }
+
+        /* Proteksi seleksi teks & long-press untuk meminimalisir popup sistem */
+        #examWrapper, #examIframe {
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
     </style>
 </head>
 <body class="flex items-center justify-center p-4">
