@@ -1,5 +1,5 @@
 /* =====================================================
-   SMART EXAM V2 - PRODUCTION BACKEND SUPABASE
+   SMART EXAM V2 - PRODUCTION BACKEND SUPABASE (iOS OPTIMIZED)
    ===================================================== */
 
 window.correctToken = "";
@@ -34,10 +34,22 @@ const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
    ===================================================== */
 window.onload = () => {
     const savedId = localStorage.getItem('smartExam_id');
+    const savedNpsn = localStorage.getItem('smartExam_npsn');
+    const savedSchoolName = localStorage.getItem('smartExam_schoolName');
+
     if (savedId) {
-        document.getElementById('studentId').value = savedId;
-        document.getElementById('rememberId').checked = true;
+        const studentIdEl = document.getElementById('studentId');
+        if (studentIdEl) studentIdEl.value = savedId;
+        const rememberEl = document.getElementById('rememberId');
+        if (rememberEl) rememberEl.checked = true;
     }
+    if (savedNpsn && savedSchoolName) {
+        const schoolInput = document.getElementById('schoolSearchInput');
+        const hiddenNpsn = document.getElementById('selectedNpsnValue');
+        if (schoolInput) schoolInput.value = savedSchoolName;
+        if (hiddenNpsn) hiddenNpsn.value = savedNpsn;
+    }
+
     fetchIP();
     loadSchoolOptions(); // Memuat daftar sekolah dinamis dari Supabase
 };
@@ -70,8 +82,10 @@ function showNotif(msg, type = 'info') {
     const n = document.getElementById('notification');
     const c = document.getElementById('notif-color');
     const i = document.getElementById('notif-icon');
-    document.getElementById('notif-message').innerText = msg;
+    const msgEl = document.getElementById('notif-message');
+    if (!n || !c || !i || !msgEl) return;
 
+    msgEl.innerText = msg;
     c.className = `w-10 h-10 rounded-full flex items-center justify-center mr-3 ${type === 'error' ? 'bg-rose-500' : 'bg-emerald-500'}`;
     i.className = `fas ${type === 'error' ? 'fa-times' : 'fa-circle-check'}`;
     n.style.transform = 'translateY(0) translateX(-50%)';
@@ -87,11 +101,12 @@ function showNotif(msg, type = 'info') {
 async function handleLogin(e) {
     e.preventDefault();
     const selectedNpsn = document.getElementById('selectedNpsnValue')?.value.trim() || "";
+    const schoolInputText = document.getElementById('schoolSearchInput')?.value.trim() || "";
     const nisnInput = document.getElementById('studentId').value.trim();
     const btn = document.getElementById('submitBtn');
 
     if (!selectedNpsn) {
-        showNotif('Silakan pilih nama sekolah yang valid!', 'error');
+        showNotif('Silakan pilih nama sekolah yang valid dari daftar!', 'error');
         return;
     }
 
@@ -99,7 +114,6 @@ async function handleLogin(e) {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memverifikasi...';
     
     try {
-        // HANYA ambil kolom yang benar-benar dibutuhkan (Sangat ringan untuk RAM)
         const { data: student, error: studentError } = await db
             .from('students')
             .select('nisn, school_npsn, full_name, class_name, grade_level, account_status')
@@ -117,22 +131,30 @@ async function handleLogin(e) {
             return;
         }
 
-        // Simpan sesi lokal di browser (Mengurangi beban state server)
         sessionData.nisn = student.nisn;
         sessionData.student_name = student.full_name;
         sessionData.npsn = student.school_npsn;
 
-         // Pindah UI
+        // Cek "Ingat ID saya"
+        const remember = document.getElementById('rememberId')?.checked;
+        if (remember) {
+            localStorage.setItem('smartExam_id', nisnInput);
+            localStorage.setItem('smartExam_npsn', selectedNpsn);
+            localStorage.setItem('smartExam_schoolName', schoolInputText);
+        } else {
+            localStorage.removeItem('smartExam_id');
+            localStorage.removeItem('smartExam_npsn');
+            localStorage.removeItem('smartExam_schoolName');
+        }
+
         document.getElementById('mainLoginCard').classList.add('hidden');
         document.getElementById('studentSection').classList.remove('hidden');
         document.getElementById('studentName').innerText = student.full_name;
         document.getElementById('studentClass').innerText = student.class_name;
         
-        // Ambil teks nama sekolah dari input pencarian sekolah yang sedang aktif
-        const schoolInputText = document.getElementById('schoolSearchInput')?.value.split('(')[0].trim() || "Sekolah";
-        document.getElementById('studentSchool').innerText = schoolInputText;
+        const cleanSchoolName = schoolInputText.split('(')[0].trim();
+        document.getElementById('studentSchool').innerText = cleanSchoolName;
 
-        // Tarik jadwal ujian aktif secara spesifik berdasarkan npsn & kelas siswa
         await fetchAndRenderActiveExams(student);
         showNotif('Identitas terverifikasi', 'success');
     
@@ -146,7 +168,7 @@ async function handleLogin(e) {
 }
 
 /* =====================================================
-   MULTI-EXAM DASHBOARD RENDERER (DIPERBAIKI & BERSIH)
+   MULTI-EXAM DASHBOARD RENDERER
    ===================================================== */
 async function fetchAndRenderActiveExams(student) {
     const container = document.getElementById('examContainer');
@@ -155,7 +177,6 @@ async function fetchAndRenderActiveExams(student) {
     container.innerHTML = `<div class="p-3 text-center text-xs text-slate-500"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat jadwal ujian...</div>`;
 
     try {
-        // Ambil ujian aktif berdasarkan NPSN sekolah siswa
         const { data: exams, error } = await db
             .from('exams')
             .select('*')
@@ -182,7 +203,6 @@ async function fetchAndRenderActiveExams(student) {
             });
         }
 
-        // Jika tidak ada jadwal ujian yang cocok
         if (validExams.length === 0) {
             container.innerHTML = `
                 <div class="bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl p-4 text-center">
@@ -229,6 +249,7 @@ async function fetchAndRenderActiveExams(student) {
             </div>`;
     }
 }
+
 /* =====================================================
    EXAM RUNTIME CONTROLLER
    ===================================================== */
@@ -275,7 +296,9 @@ function startTimer(seconds) {
         let m = Math.floor((timeRemaining % 3600) / 60);
         let s = timeRemaining % 60;
 
-        display.innerText = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        if (display) {
+            display.innerText = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }
         const remainingMinutes = timeRemaining / 60;
         const closeBtn = document.getElementById('btnCloseExam');
 
@@ -300,6 +323,7 @@ function startTimer(seconds) {
 
 function zoomExam(type) {
     const iframe = document.getElementById('examIframe');
+    if (!iframe) return;
     if (type === 'in' && currentZoom < 150) currentZoom += 10;
     else if (type === 'out' && currentZoom > 70) currentZoom -= 10;
     const scale = currentZoom / 100;
@@ -310,6 +334,7 @@ function zoomExam(type) {
 
 function refreshExam() {
     const iframe = document.getElementById('examIframe');
+    if (!iframe) return;
     const url = iframe.src;
     iframe.src = '';
     setTimeout(() => { iframe.src = url; }, 50);
@@ -325,16 +350,17 @@ function stopAlarm() {
 
 function tampilkanModalWaktuHabis() {
     let countdown = 5;
-    document.getElementById('timeUpModal').classList.replace('hidden', 'flex');
+    const timeUpModal = document.getElementById('timeUpModal');
+    if (timeUpModal) timeUpModal.classList.replace('hidden', 'flex');
     const countdownText = document.getElementById('timeUpCountdown');
-    countdownText.innerText = countdown;
+    if (countdownText) countdownText.innerText = countdown;
 
     const interval = setInterval(() => {
         countdown--;
-        countdownText.innerText = countdown;
+        if (countdownText) countdownText.innerText = countdown;
         if (countdown <= 0) {
             clearInterval(interval);
-            document.getElementById('timeUpModal').classList.replace('flex', 'hidden');
+            if (timeUpModal) timeUpModal.classList.replace('flex', 'hidden');
             resetExamSession();
         }
     }, 1000);
@@ -417,7 +443,8 @@ function handleSessionExpired(message) {
     if (sessionData.heartbeatInterval) clearInterval(sessionData.heartbeatInterval);
     if (timerInterval) clearInterval(timerInterval);
     isExamActive = false;
-    document.getElementById('examIframe').src = "about:blank";
+    const iframe = document.getElementById('examIframe');
+    if (iframe) iframe.src = "about:blank";
 
     showSecurityModal({
         title: "Akses Ditolak",
@@ -428,7 +455,7 @@ function handleSessionExpired(message) {
 }
 
 /* =====================================================
-   WAKELOCK & FULLSCREEN LOGIC
+   WAKELOCK & FULLSCREEN LOGIC (iOS COMPATIBLE)
    ===================================================== */
 async function aktifkanWakeLock() {
     if ('wakeLock' in navigator) {
@@ -457,24 +484,59 @@ document.addEventListener("fullscreenchange", () => {
 });
 
 /* =====================================================
-   SECURITY & VIOLATION LOGIC (SUPABASE DIRECT)
+   SECURITY & VIOLATION LOGIC (OPTIMIZED FOR ANDROID & iOS)
    ===================================================== */
 let iosViolationTimeout = null;
 
+// Deteksi Hilang Fokus (Blur) dengan toleransi khusus iOS
+window.addEventListener("blur", () => {
+    const delayTime = isIOS ? 500 : 300;
+    
+    setTimeout(() => {
+        if (isExamActive && !window.isForceClosing && !document.hasFocus()) {
+            if (isIOS) {
+                // Peringatan halus untuk iOS agar terhindar dari false positive keyboard/Safari UI
+                const audio = document.getElementById('alarmAudio');
+                if (audio) audio.play();
+                const lockScreen = document.getElementById('lockScreen');
+                if (lockScreen) {
+                    lockScreen.classList.remove('hidden');
+                    lockScreen.classList.add('flex');
+                }
+            } else {
+                triggerViolation("MENGGUNAKAN OVERLAY / KELUAR APLIKASI");
+            }
+        }
+    }, delayTime);
+});
+
+window.addEventListener("focus", () => {
+    if (isExamActive) {
+        stopAlarm();
+    }
+});
+
 document.addEventListener("visibilitychange", () => {
     if (isExamActive && document.hidden && document.visibilityState === "hidden") {
-        triggerViolation("PINDAH TAB");
+        if (!isIOS) {
+            triggerViolation("PINDAH TAB");
+        }
     } else if (!document.hidden) {
         stopAlarm();
     }
 });
 
 document.addEventListener("fullscreenchange", () => {
+    if (isIOS) return; // Lewati pemeriksaan fullscreen ketat untuk iOS
+    
     setTimeout(() => {
-        if (isExamActive && !window.isForceClosing && !document.fullscreenElement && !isIOS && document.visibilityState === "visible") {
+        if (isExamActive && !window.isForceClosing && !document.fullscreenElement && document.visibilityState === "visible") {
             triggerViolation("KELUAR FULLSCREEN");
-            document.getElementById('lockScreen').classList.remove('hidden');
-            document.getElementById('lockScreen').classList.add('flex');
+            const lockScreen = document.getElementById('lockScreen');
+            if (lockScreen) {
+                lockScreen.classList.remove('hidden');
+                lockScreen.classList.add('flex');
+            }
         }
     }, 300);
 });
@@ -508,9 +570,14 @@ if (isIOS) {
 function handleIosBlurAction() {
     if (!isExamActive || window.isForceClosing) return;
 
-    document.getElementById('alarmAudio').play();
-    document.getElementById('lockScreen').classList.remove('hidden');
-    document.getElementById('lockScreen').classList.add('flex');
+    const audio = document.getElementById('alarmAudio');
+    if (audio) audio.play();
+    
+    const lockScreen = document.getElementById('lockScreen');
+    if (lockScreen) {
+        lockScreen.classList.remove('hidden');
+        lockScreen.classList.add('flex');
+    }
 
     if (!iosViolationTimeout) {
         iosViolationTimeout = setTimeout(() => {
@@ -582,8 +649,11 @@ async function kembaliKeFullscreen() {
     const success = await enterFullscreen();
     if (success || isIOS) {
         aktifkanWakeLock();
-        document.getElementById('lockScreen').classList.add('hidden');
-        document.getElementById('lockScreen').classList.remove('flex');
+        const lockScreen = document.getElementById('lockScreen');
+        if (lockScreen) {
+            lockScreen.classList.add('hidden');
+            lockScreen.classList.remove('flex');
+        }
         stopAlarm();
         if (iosViolationTimeout) {
             clearTimeout(iosViolationTimeout);
@@ -596,19 +666,27 @@ function showSecurityModal({title = "Keamanan Sistem", subtitle = "Aktivitas tid
     if (window.isForceClosing) return;
     window.isForceClosing = true;
 
-    document.getElementById('securityModalIcon').className = `fas ${icon} text-white text-4xl`;
-    document.getElementById('securityModalTitle').innerText = title;
-    document.getElementById('securityModalSubtitle').innerText = subtitle;
-    document.getElementById('securityModalMessage').innerText = message;
+    const iconEl = document.getElementById('securityModalIcon');
+    if (iconEl) iconEl.className = `fas ${icon} text-white text-4xl`;
+    const titleEl = document.getElementById('securityModalTitle');
+    if (titleEl) titleEl.innerText = title;
+    const subtitleEl = document.getElementById('securityModalSubtitle');
+    if (subtitleEl) subtitleEl.innerText = subtitle;
+    const msgEl = document.getElementById('securityModalMessage');
+    if (msgEl) msgEl.innerText = message;
 
     const modal = document.getElementById('securityModal');
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
 
     setTimeout(() => {
         resetExamSession();
-        modal.classList.remove('flex');
-        modal.classList.add('hidden');
+        if (modal) {
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }
         window.isForceClosing = false;
     }, 5000);
 }
@@ -617,16 +695,22 @@ function showSecurityModal({title = "Keamanan Sistem", subtitle = "Aktivitas tid
    EXIT MODAL & RESET SYSTEM
    ===================================================== */
 function closeExam() {
-    document.getElementById('modalExit').classList.replace('hidden', 'flex');
-    document.getElementById('exitTokenInput').value = "";
-    document.getElementById('exitErrorMsg').classList.add('hidden');
-    setTimeout(() => document.getElementById('exitTokenInput').focus(), 300);
+    const modalExit = document.getElementById('modalExit');
+    if (modalExit) modalExit.classList.replace('hidden', 'flex');
+    const exitInput = document.getElementById('exitTokenInput');
+    if (exitInput) exitInput.value = "";
+    const errorMsg = document.getElementById('exitErrorMsg');
+    if (errorMsg) errorMsg.classList.add('hidden');
+    setTimeout(() => exitInput?.focus(), 300);
 }
 
 function tutupModalExit() {
-    document.getElementById('modalExit').classList.replace('flex', 'hidden');
-    document.getElementById('stepToken').classList.add('hidden');
-    document.getElementById('stepConfirmation').classList.remove('hidden');
+    const modalExit = document.getElementById('modalExit');
+    if (modalExit) modalExit.classList.replace('flex', 'hidden');
+    const stepToken = document.getElementById('stepToken');
+    if (stepToken) stepToken.classList.add('hidden');
+    const stepConf = document.getElementById('stepConfirmation');
+    if (stepConf) stepConf.classList.remove('hidden');
     
     const btnExit = document.getElementById('btnFinalExit');
     if (btnExit) {
@@ -640,8 +724,10 @@ function tutupModalExit() {
         btnSubmit.innerHTML = 'SAYA SUDAH SUBMIT';
     }
 
-    document.getElementById('exitTokenInput').value = "";
-    document.getElementById('exitErrorMsg').classList.add('hidden');
+    const exitInput = document.getElementById('exitTokenInput');
+    if (exitInput) exitInput.value = "";
+    const errorMsg = document.getElementById('exitErrorMsg');
+    if (errorMsg) errorMsg.classList.add('hidden');
 }
 
 function goToTokenStep(e) {
@@ -655,8 +741,10 @@ function goToTokenStep(e) {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> MEMPROSES...';
     }
     setTimeout(() => {
-        document.getElementById('stepConfirmation').classList.add('hidden');
-        document.getElementById('stepToken').classList.remove('hidden');
+        const stepConf = document.getElementById('stepConfirmation');
+        if (stepConf) stepConf.classList.add('hidden');
+        const stepToken = document.getElementById('stepToken');
+        if (stepToken) stepToken.classList.remove('hidden');
         const tokenInput = document.getElementById('exitTokenInput');
         if (tokenInput) { tokenInput.value = ""; tokenInput.focus(); }
         if (btn) { btn.innerHTML = 'SAYA SUDAH SUBMIT'; btn.disabled = false; }
@@ -669,15 +757,16 @@ async function konfirmasiKeluar(e) {
         e.stopPropagation(); 
     }
     
-    const inputUser = document.getElementById('exitTokenInput').value.trim().toUpperCase();
+    const inputUser = document.getElementById('exitTokenInput')?.value.trim().toUpperCase() || "";
     const tokenSistem = String(sessionData.exit_token || "").trim().toUpperCase();
     
     const btnExit = document.getElementById('btnFinalExit'); 
     const originalText = 'KELUAR';
 
     if (inputUser === "") {
-        document.getElementById('exitErrorMsg').classList.remove('hidden');
-        document.getElementById('exitTokenInput').focus();
+        const errorMsg = document.getElementById('exitErrorMsg');
+        if (errorMsg) errorMsg.classList.remove('hidden');
+        document.getElementById('exitTokenInput')?.focus();
         return; 
     }
 
@@ -694,7 +783,8 @@ async function konfirmasiKeluar(e) {
         } catch (err) { console.log("Gagal update status DONE, paksa reset."); }
         setTimeout(() => { resetExamSession(); }, 300);
     } else {
-        document.getElementById('exitErrorMsg').classList.remove('hidden');
+        const errorMsg = document.getElementById('exitErrorMsg');
+        if (errorMsg) errorMsg.classList.remove('hidden');
         const tokenInput = document.getElementById('exitTokenInput');
         if (tokenInput) { tokenInput.value = ""; tokenInput.focus(); }
         
@@ -706,7 +796,7 @@ async function konfirmasiKeluar(e) {
 }
 
 /* =====================================================
-   PERBAIKAN FUNGSI RESET SESSION SETELAH KELUAR UJIAN
+   RESET SESSION SETELAH KELUAR UJIAN (CLEAN FORM)
    ===================================================== */
 function resetExamSession() {
     isExamActive = false;
@@ -718,15 +808,23 @@ function resetExamSession() {
     if (sessionData.wakeLock) { sessionData.wakeLock.release().catch(() => {}); }
     if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); }
 
-    // Sembunyikan layar ujian & dashboard siswa, tampilkan login utama
-    document.getElementById('examIframe').src = "about:blank";
-    document.getElementById('examWrapper').classList.replace('flex', 'hidden');
-    document.getElementById('studentSection').classList.add('hidden');
-    document.getElementById('mainLoginCard').classList.remove('hidden');
-    document.getElementById('examTimer').innerText = "00:00:00";
+    const iframe = document.getElementById('examIframe');
+    if (iframe) iframe.src = "about:blank";
+    
+    const examWrapper = document.getElementById('examWrapper');
+    if (examWrapper) examWrapper.classList.replace('flex', 'hidden');
+    
+    const studentSection = document.getElementById('studentSection');
+    if (studentSection) studentSection.classList.add('hidden');
+    
+    const mainLoginCard = document.getElementById('mainLoginCard');
+    if (mainLoginCard) mainLoginCard.classList.remove('hidden');
+    
+    const examTimer = document.getElementById('examTimer');
+    if (examTimer) examTimer.innerText = "00:00:00";
 
-    // Bersihkan input token keluar
-    if (document.getElementById('exitTokenInput')) document.getElementById('exitTokenInput').value = "";
+    const exitTokenInput = document.getElementById('exitTokenInput');
+    if (exitTokenInput) exitTokenInput.value = "";
 
     currentZoom = 100; 
     correctToken = ""; 
@@ -735,11 +833,9 @@ function resetExamSession() {
     sessionData.exit_token = "";
     tutupModalExit();
 
-    // Cek apakah fitur "Ingat ID saya" aktif
     const remember = document.getElementById('rememberId')?.checked;
 
     if (!remember) { 
-        // Jika tidak dicentang, bersihkan seluruh localStorage dan kosongkan SEMUA input (Sekolah & NISN)
         localStorage.removeItem('smartExam_id'); 
         localStorage.removeItem('smartExam_npsn');
         localStorage.removeItem('smartExam_schoolName');
@@ -753,7 +849,6 @@ function resetExamSession() {
         const selectedNpsnValue = document.getElementById('selectedNpsnValue');
         if (selectedNpsnValue) selectedNpsnValue.value = "";
     } else {
-        // Jika dicentang, pertahankan data di form
         const nisnVal = document.getElementById('studentId')?.value;
         const npsnVal = document.getElementById('selectedNpsnValue')?.value;
         const schoolVal = document.getElementById('schoolSearchInput')?.value;
@@ -763,6 +858,7 @@ function resetExamSession() {
         if (schoolVal) localStorage.setItem('smartExam_schoolName', schoolVal);
     }
 }
+
 /* =====================================================
    FITUR TAB & SCHOOL AUTOCOMPLETE (MULTI-SCHOOL)
    ===================================================== */
@@ -771,34 +867,21 @@ function switchLoginRole(role) {
     const teacherBtn = document.getElementById('tabTeacherBtn');
     const studentSec = document.getElementById('loginSection');
     const teacherSec = document.getElementById('teacherLoginSection');
+    if (!studentBtn || !teacherBtn || !studentSec || !teacherSec) return;
 
     if (role === 'student') {
-        // Aktifkan gaya tombol tab Siswa
         studentBtn.className = "py-2.5 text-xs font-bold rounded-xl transition-all bg-white text-purple-600 shadow-sm";
         teacherBtn.className = "py-2.5 text-xs font-bold rounded-xl transition-all text-slate-600 hover:text-slate-900";
-        
-        // Tampilkan form siswa, sembunyikan form guru
         studentSec.classList.remove('hidden');
         teacherSec.classList.add('hidden');
     } else {
-        // Aktifkan gaya tombol tab Guru/Admin
         teacherBtn.className = "py-2.5 text-xs font-bold rounded-xl transition-all bg-white text-purple-600 shadow-sm";
         studentBtn.className = "py-2.5 text-xs font-bold rounded-xl transition-all text-slate-600 hover:text-slate-900";
-        
-        // Tampilkan form guru, sembunyikan form siswa
         teacherSec.classList.remove('hidden');
         studentSec.classList.add('hidden');
     }
 }
-function handleTeacherLoginPlaceholder() {
-    showNotif('Modul Dashboard Guru sedang disiapkan!', 'info');
-}
 
-function handleSchoolRegistrationPlaceholder() {
-    showNotif('Fitur registrasi sekolah mandiri segera hadir.', 'info');
-}
-
-// Variabel global untuk menampung seluruh daftar sekolah dari Supabase
 window.allSchoolsData = [];
 
 async function loadSchoolOptions() {
@@ -810,19 +893,17 @@ async function loadSchoolOptions() {
 
         if (error) throw error;
         if (schools) {
-            window.allSchoolsData = schools; // Simpan data ke memori lokal
+            window.allSchoolsData = schools;
         }
     } catch (err) {
         console.error("Gagal memuat daftar sekolah:", err);
     }
 }
 
-// **VALIDASI KETAT:** Fungsi Filter Interaktif saat Pengguna Mengetik Nama Sekolah
 function filterSchools(keyword) {
     const dropdown = document.getElementById('schoolDropdown');
     const hiddenNpsn = document.getElementById('selectedNpsnValue');
     
-    // Setiap kali pengguna mengetik ulang, wajibkan pilih ulang dari dropdown (reset NPSN)
     if (hiddenNpsn) hiddenNpsn.value = ""; 
 
     if (!keyword || keyword.trim() === "") {
@@ -852,10 +933,9 @@ function filterSchools(keyword) {
                 item.className = "px-4 py-2.5 text-xs text-slate-700 font-medium hover:bg-purple-50 hover:text-purple-700 cursor-pointer border-b border-slate-50 last:border-none transition-colors";
                 item.innerHTML = `${school.school_name} <span class="text-slate-400 font-normal">(${school.npsn})</span>`;
                 
-                // Ketika salah satu diklik oleh pengguna
                 item.onclick = () => {
                     document.getElementById('schoolSearchInput').value = `${school.school_name} (${school.npsn})`;
-                    if (hiddenNpsn) hiddenNpsn.value = school.npsn; // Kunci NPSN yang sah
+                    if (hiddenNpsn) hiddenNpsn.value = school.npsn;
                     dropdown.classList.add('hidden');
                 };
                 dropdown.appendChild(item);
@@ -865,7 +945,6 @@ function filterSchools(keyword) {
     }
 }
 
-// Tutup dropdown jika pengguna mengklik di luar area input
 document.addEventListener('click', (e) => {
     const inputElem = document.getElementById('schoolSearchInput');
     const dropdownElem = document.getElementById('schoolDropdown');
@@ -874,19 +953,14 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Fungsi untuk membuka/menutup modal pendaftaran tanpa pindah link URL
 function toggleRegisterModal(show) {
     const modal = document.getElementById('registerModal');
     if (modal) {
-        if (show) {
-            modal.classList.remove('hidden');
-        } else {
-            modal.classList.add('hidden');
-        }
+        if (show) modal.classList.remove('hidden');
+        else modal.classList.add('hidden');
     }
 }
 
-// **AUTO-REFRESH LIST:** Eksekusi pendaftaran via modal & perbarui memori sekolah otomatis
 async function handleModalRegistration(e) {
     e.preventDefault();
     const npsn = document.getElementById('mRegNpsn').value.trim();
@@ -900,7 +974,6 @@ async function handleModalRegistration(e) {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memeriksa data...';
 
     try {
-        // 1. VALIDASI PRE-CHECK: Cek apakah NPSN sudah terdaftar di tabel schools
         const { data: existingSchool, error: checkError } = await db
             .from('schools')
             .select('npsn, school_name')
@@ -916,7 +989,6 @@ async function handleModalRegistration(e) {
             return;
         }
 
-        // 2. VALIDASI PRE-CHECK: Cek apakah Email sudah digunakan oleh user/proktor lain
         const { data: existingUser, error: checkUserError } = await db
             .from('users')
             .select('email')
@@ -932,25 +1004,8 @@ async function handleModalRegistration(e) {
             return;
         }
 
-        // 3. VALIDASI PRE-CHECK: Cek apakah Nomor WhatsApp sudah digunakan
-        const { data: existingWa, error: checkWaError } = await db
-            .from('schools')
-            .select('whatsapp_number, school_name')
-            .eq('whatsapp_number', whatsapp)
-            .maybeSingle();
-
-        if (checkWaError) throw checkWaError;
-
-        if (existingWa) {
-            showNotif(`Gagal: Nomor WhatsApp ${whatsapp} sudah digunakan oleh sekolah "${existingWa.school_name}"!`, 'error');
-            btn.disabled = false;
-            btn.innerHTML = 'Simpan & Daftarkan Sekolah';
-            return;
-        }
-
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memproses pendaftaran...';
 
-        // 4. Simpan ke Database Supabase (Tabel schools) - DIPERBAIKI (Kurung siku diganti titik)
         const { error: schoolError } = await db.from('schools').insert({
             npsn: npsn,
             school_name: schoolName,
@@ -961,7 +1016,6 @@ async function handleModalRegistration(e) {
 
         if (schoolError) throw schoolError;
 
-        // 5. Simpan ke Database Supabase (Tabel users untuk login admin)
         const { error: userError } = await db.from('users').insert({
             school_npsn: npsn,
             school_name: schoolName,
@@ -974,22 +1028,10 @@ async function handleModalRegistration(e) {
 
         if (userError) throw userError;
 
-        // 6. Kirim data ke Google Sheets melalui URL Web App Google Apps Script
-        const googleScriptUrl = "https://script.google.com/macros/s/AKfycbwhnXGN_a1nQdTkHsuVuTvNAhp_1LQbj6m4uPTzNd4gusB_Z7IL_tbp5YmE2WZcm1ZeNA/exec";
-        if (googleScriptUrl && googleScriptUrl.startsWith("https://")) {
-            fetch(googleScriptUrl, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ npsn, schoolName, email, whatsapp, password })
-            }).catch(err => console.log("Gagal sync ke Google Sheets:", err));
-        }
-
         showNotif('Sekolah & akun admin berhasil didaftarkan!', 'success');
         toggleRegisterModal(false);
         e.target.reset();
 
-        // Tarik ulang daftar sekolah terbaru ke memori
         await loadSchoolOptions();
 
     } catch (err) {
@@ -1000,74 +1042,3 @@ async function handleModalRegistration(e) {
         btn.innerHTML = 'Simpan & Daftarkan Sekolah';
     }
 }
-/* =====================================================
-   KEMBALI KE HALAMAN LOGIN UTAMA (DARI DASHBOARD SISWA)
-   ===================================================== */
-function logoutToLogin() {
-    // Reset variabel sesi penting
-    sessionData.npsn = "";
-    sessionData.nisn = "";
-    sessionData.student_name = "";
-    sessionData.exam_id = "";
-    sessionData.exit_token = "";
-
-    // Sembunyikan section dashboard siswa
-    const studentSection = document.getElementById('studentSection');
-    if (studentSection) {
-        studentSection.classList.add('hidden');
-    }
-
-    // Tampilkan kembali card login utama
-    const mainLoginCard = document.getElementById('mainLoginCard');
-    if (mainLoginCard) {
-        mainLoginCard.classList.remove('hidden');
-    }
-
-    // Kosongkan kontainer daftar ujian agar tidak menumpuk
-    const examContainer = document.getElementById('examContainer');
-    if (examContainer) {
-        examContainer.innerHTML = '';
-    }
-
-    // Cek status checkbox 'Ingat ID saya'
-    const remember = document.getElementById('rememberId')?.checked;
-
-    if (!remember) { 
-        // Jika tidak dicentang, bersihkan penyimpanan lokal dan kosongkan SEMUA input (Sekolah & NISN)
-        localStorage.removeItem('smartExam_id'); 
-        
-        const studentIdElem = document.getElementById('studentId');
-        if (studentIdElem) studentIdElem.value = ""; 
-
-        const schoolSearchInput = document.getElementById('schoolSearchInput');
-        if (schoolSearchInput) schoolSearchInput.value = "";
-
-        const selectedNpsnValue = document.getElementById('selectedNpsnValue');
-        if (selectedNpsnValue) selectedNpsnValue.value = "";
-    } else {
-        // Jika dicentang, NISN tetap diingat, tapi kita pastikan ID-nya tersimpan ke localStorage
-        const nisnVal = document.getElementById('studentId')?.value;
-        if (nisnVal) {
-            localStorage.setItem('smartExam_id', nisnVal);
-        }
-    }
-
-    showNotif('Kembali ke menu login', 'info');
-}
-/* =====================================================
-   DETEKSI OVERLAY & KELUAR APLIKASI (AMAN SAAT MENGETIK)
-   ===================================================== */
-window.addEventListener("blur", () => {
-    // Beri jeda 300ms untuk memastikan ini bukan sekadar fokus ketik / iframe
-    setTimeout(() => {
-        if (isExamActive && !window.isForceClosing && !document.hasFocus()) {
-            triggerViolation("MENGGUNAKAN OVERLAY / KELUAR APLIKASI");
-        }
-    }, 300);
-});
-
-window.addEventListener("focus", () => {
-    if (isExamActive) {
-        stopAlarm();
-    }
-});
